@@ -13,7 +13,7 @@ import { useSession } from "~/services/auth/client";
 type SessionUser = { role?: string } & Record<string, unknown>;
 
 export default function AppLayout() {
-	const { data: session } = useSession();
+	const { data: session, isPending } = useSession();
 	const userRole = (session?.user as SessionUser | undefined)?.role;
 
 	return (
@@ -112,18 +112,27 @@ export default function AppLayout() {
 						</nav>
 					</div>
 					<div className="flex items-center gap-3">
-						{session?.user ? (
-							<span className="hidden max-w-[200px] truncate text-sm text-muted-foreground lg:inline">
-								{session.user.email}
-							</span>
-						) : null}
-						<UserMenu />
+						{isPending ? (
+							<div className="h-8 w-20 animate-pulse rounded-md bg-muted" />
+						) : (
+							<>
+								{session?.user ? (
+									<span className="hidden max-w-[200px] truncate text-sm text-muted-foreground lg:inline">
+										{session.user.email}
+									</span>
+								) : null}
+								<UserMenu />
+							</>
+						)}
 					</div>
 				</div>
 			</header>
 			<main className="flex flex-1 flex-col">
 				<Outlet />
 			</main>
+			<footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
+				{"{{displayName}}"} &copy; {new Date().getFullYear()}
+			</footer>
 		</div>
 	);
 }

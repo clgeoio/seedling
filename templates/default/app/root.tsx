@@ -17,10 +17,12 @@ import "~/styles/app.css";
 
 export const middleware = [trimTrailingSlash, requestId, authMiddleware, loggerMiddleware];
 
-export async function loader({ request, context }: Route.LoaderArgs) {
-	const theme = await getTheme(request);
+export async function loader({ request }: Route.LoaderArgs) {
+	const theme = getTheme(request);
 	return { theme };
 }
+
+const themeScript = `(function(){try{var c=document.cookie.match(/{{projectName}}_theme=([^;]+)/);var t=c&&c[1];if(t==="dark")document.documentElement.classList.add("dark");else if(t!=="light"&&matchMedia("(prefers-color-scheme:dark)").matches)document.documentElement.classList.add("dark")}catch(e){}})()`;
 
 export function Layout({ children }: { children: React.ReactNode }) {
 	return (
@@ -28,6 +30,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 			<head>
 				<meta charSet="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
+				<script dangerouslySetInnerHTML={{ __html: themeScript }} />
 				<Meta />
 				<Links />
 			</head>
@@ -57,10 +60,17 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 	}
 
 	return (
-		<div className="flex min-h-screen items-center justify-center">
+		<div className="flex min-h-screen items-center justify-center px-4">
 			<div className="text-center">
-				<h1 className="text-4xl font-bold">{title}</h1>
+				<p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">Error</p>
+				<h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
 				<p className="mt-4 text-muted-foreground">{message}</p>
+				<a
+					href="/"
+					className="mt-6 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+				>
+					Back to home
+				</a>
 			</div>
 		</div>
 	);

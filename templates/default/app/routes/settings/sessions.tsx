@@ -92,6 +92,7 @@ export default function SettingsSessions() {
 	}
 
 	async function handleRevokeOthers() {
+		if (!confirm("Revoke all other sessions? You will remain signed in on this device only.")) return;
 		setRevokingOthers(true);
 		setLoadError(null);
 		try {

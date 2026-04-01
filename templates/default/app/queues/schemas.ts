@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const emailMessage = z.object({
 	type: z.literal("email"),
-	to: z.string(),
+	to: z.string().email(),
 	subject: z.string(),
 	html: z.string(),
 });

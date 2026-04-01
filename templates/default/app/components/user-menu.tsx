@@ -1,4 +1,4 @@
-import { Form, Link } from "react-router";
+import { Link, useFetcher } from "react-router";
 import { useSession } from "~/services/auth/client";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
@@ -13,6 +13,7 @@ import {
 
 export function UserMenu() {
 	const { data: session } = useSession();
+	const fetcher = useFetcher();
 	const user = session?.user;
 
 	if (!user) {
@@ -51,10 +52,10 @@ export function UserMenu() {
 					<Link to="/settings/account">Settings</Link>
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
-				<DropdownMenuItem asChild>
-					<Form method="post" action="/auth/sign-out">
-						<button type="submit" className="w-full text-left">Sign out</button>
-					</Form>
+				<DropdownMenuItem
+					onSelect={() => fetcher.submit(null, { method: "post", action: "/auth/sign-out" })}
+				>
+					Sign out
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

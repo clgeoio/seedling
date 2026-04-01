@@ -1,5 +1,16 @@
-import { NavLink, Outlet } from "react-router";
+import { NavLink, Outlet, redirect } from "react-router";
+import type { Route } from "./+types/layout";
 import { Separator } from "~/components/ui/separator";
+import { authContext } from "~/contexts";
+
+export async function loader({ context, request }: Route.LoaderArgs) {
+	const { user } = context.get(authContext);
+	if (!user) {
+		const url = new URL(request.url);
+		throw redirect(`/auth/sign-in?redirect=${encodeURIComponent(url.pathname)}`);
+	}
+	return {};
+}
 
 const SETTINGS_NAV = [
 	{ to: "/settings/account", label: "Account" },

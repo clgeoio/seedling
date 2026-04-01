@@ -1,4 +1,5 @@
 import { desc } from "drizzle-orm";
+import { Users } from "lucide-react";
 import type { Route } from "./+types/index";
 import { Badge } from "~/components/ui/badge";
 import {
@@ -39,8 +40,11 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
 					<TableBody>
 						{loaderData.users.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-									No users yet.
+								<TableCell colSpan={3} className="h-32 text-center">
+									<div className="flex flex-col items-center gap-2">
+										<Users className="size-8 text-muted-foreground/50" />
+										<p className="text-sm text-muted-foreground">No users yet.</p>
+									</div>
 								</TableCell>
 							</TableRow>
 						) : (

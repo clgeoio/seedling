@@ -16,8 +16,7 @@ export default function Index() {
 						{"{{displayName}}"}
 					</h1>
 					<p className="mt-6 text-lg leading-relaxed text-muted-foreground sm:text-xl">
-						Build and ship faster with a modern stack on the edge. Sign in to continue, or head to your
-						dashboard when you are ready.
+						Build and ship faster with a modern stack on the edge.
 					</p>
 					<div className="mt-10 flex flex-wrap items-center justify-center gap-3">
 						{isPending ? (
@@ -25,11 +24,13 @@ export default function Index() {
 						) : session?.user ? (
 							<>
 								<Button asChild size="lg">
-									<Link to="/settings/account">Go to dashboard</Link>
+									<Link to="/settings/account">Account</Link>
 								</Button>
+// {{#if includeTodos}}
 								<Button asChild variant="outline" size="lg">
-									<Link to="/settings/appearance">Settings</Link>
+									<Link to="/todos">Todos</Link>
 								</Button>
+// {{/if}}
 							</>
 						) : (
 							<>

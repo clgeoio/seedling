@@ -19,10 +19,15 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { signIn } from "~/services/auth/client";
 
+function safeRedirect(to: string, defaultTo = "/"): string {
+	if (!to.startsWith("/") || to.startsWith("//")) return defaultTo;
+	return to;
+}
+
 export default function AuthSignIn() {
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
-	const redirectTo = searchParams.get("redirect") ?? "/";
+	const redirectTo = safeRedirect(searchParams.get("redirect") ?? "/");
 
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -37,13 +42,13 @@ export default function AuthSignIn() {
 			const result = await signIn.email({
 				email,
 				password,
-				callbackURL: redirectTo.startsWith("/") ? redirectTo : "/",
+				callbackURL: redirectTo,
 			});
 			if (result.error) {
 				setError(result.error.message ?? "Could not sign in");
 				return;
 			}
-			void navigate(redirectTo.startsWith("/") ? redirectTo : "/", { replace: true });
+			void navigate(redirectTo, { replace: true });
 		} finally {
 			setPending(false);
 		}
@@ -111,12 +116,16 @@ export default function AuthSignIn() {
 							variant="outline"
 							className="w-full"
 							disabled={pending}
-							onClick={() =>
+							onClick={() => {
+								setPending(true);
 								void signIn.social({
 									provider: "github",
-									callbackURL: redirectTo.startsWith("/") ? redirectTo : "/",
-								})
-							}
+									callbackURL: redirectTo,
+								}).catch(() => {
+									setError("Could not start GitHub sign-in");
+									setPending(false);
+								});
+							}}
 						>
 							<Github className="mr-2 size-4" />
 							GitHub
@@ -128,12 +137,16 @@ export default function AuthSignIn() {
 							variant="outline"
 							className="w-full"
 							disabled={pending}
-							onClick={() =>
+							onClick={() => {
+								setPending(true);
 								void signIn.social({
 									provider: "google",
-									callbackURL: redirectTo.startsWith("/") ? redirectTo : "/",
-								})
-							}
+									callbackURL: redirectTo,
+								}).catch(() => {
+									setError("Could not start Google sign-in");
+									setPending(false);
+								});
+							}}
 						>
 							<Chrome className="mr-2 size-4" />
 							Google
@@ -145,7 +158,10 @@ export default function AuthSignIn() {
 				<CardFooter className="flex justify-center text-sm text-muted-foreground">
 					<span>
 						No account?{" "}
-						<Link to="/auth/sign-up" className="font-medium text-foreground underline-offset-4 hover:underline">
+						<Link
+							to={redirectTo !== "/" ? `/auth/sign-up?redirect=${encodeURIComponent(redirectTo)}` : "/auth/sign-up"}
+							className="font-medium text-foreground underline-offset-4 hover:underline"
+						>
 							Sign up
 						</Link>
 					</span>

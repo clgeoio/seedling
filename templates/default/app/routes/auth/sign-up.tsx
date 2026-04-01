@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 // {{#if hasGithub}}
 import { Github } from "lucide-react";
 // {{/if}}
@@ -19,6 +19,11 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { signIn, signUp } from "~/services/auth/client";
 
+function safeRedirect(to: string, defaultTo = "/"): string {
+	if (!to.startsWith("/") || to.startsWith("//")) return defaultTo;
+	return to;
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateForm(input: {
@@ -36,11 +41,14 @@ function validateForm(input: {
 
 export default function AuthSignUp() {
 	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
+	const redirectTo = safeRedirect(searchParams.get("redirect") ?? "/");
 
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [pending, setPending] = useState(false);
+	const [success, setSuccess] = useState(false);
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -56,16 +64,37 @@ export default function AuthSignUp() {
 				name: email.trim(),
 				email: email.trim(),
 				password,
-				callbackURL: "/",
+				callbackURL: redirectTo,
 			});
 			if (result.error) {
 				setError(result.error.message ?? "Could not create account");
 				return;
 			}
-			void navigate("/", { replace: true });
+			setSuccess(true);
 		} finally {
 			setPending(false);
 		}
+	}
+
+	if (success) {
+		return (
+			<div className="flex min-h-screen items-center justify-center bg-background p-4">
+				<Card className="w-full max-w-md">
+					<CardHeader>
+						<CardTitle className="text-2xl font-semibold">Check your email</CardTitle>
+						<CardDescription>
+							We sent a verification link to <span className="font-medium text-foreground">{email}</span>.
+							Please verify your email before signing in.
+						</CardDescription>
+					</CardHeader>
+					<CardFooter>
+						<Button variant="outline" className="w-full" asChild>
+							<Link to="/auth/sign-in">Back to sign in</Link>
+						</Button>
+					</CardFooter>
+				</Card>
+			</div>
+		);
 	}
 
 	return (
@@ -123,12 +152,16 @@ export default function AuthSignUp() {
 							variant="outline"
 							className="w-full"
 							disabled={pending}
-							onClick={() =>
+							onClick={() => {
+								setPending(true);
 								void signIn.social({
 									provider: "github",
-									callbackURL: "/",
-								})
-							}
+									callbackURL: redirectTo,
+								}).catch(() => {
+									setError("Could not start GitHub sign-in");
+									setPending(false);
+								});
+							}}
 						>
 							<Github className="mr-2 size-4" />
 							GitHub
@@ -140,12 +173,16 @@ export default function AuthSignUp() {
 							variant="outline"
 							className="w-full"
 							disabled={pending}
-							onClick={() =>
+							onClick={() => {
+								setPending(true);
 								void signIn.social({
 									provider: "google",
-									callbackURL: "/",
-								})
-							}
+									callbackURL: redirectTo,
+								}).catch(() => {
+									setError("Could not start Google sign-in");
+									setPending(false);
+								});
+							}}
 						>
 							<Chrome className="mr-2 size-4" />
 							Google
@@ -157,7 +194,10 @@ export default function AuthSignUp() {
 				<CardFooter className="flex justify-center text-sm text-muted-foreground">
 					<span>
 						Already have an account?{" "}
-						<Link to="/auth/sign-in" className="font-medium text-foreground underline-offset-4 hover:underline">
+						<Link
+							to={redirectTo !== "/" ? `/auth/sign-in?redirect=${encodeURIComponent(redirectTo)}` : "/auth/sign-in"}
+							className="font-medium text-foreground underline-offset-4 hover:underline"
+						>
 							Sign in
 						</Link>
 					</span>

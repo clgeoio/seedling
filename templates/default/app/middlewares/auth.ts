@@ -23,12 +23,15 @@ export const authMiddleware: MiddlewareFunction = async ({ request, context }, n
 		headers: request.headers,
 	});
 
-	const user = session?.user
+	const sessionUser = session?.user as Record<string, unknown> | undefined;
+	const isBanned = sessionUser?.banned === true;
+
+	const user = sessionUser && !isBanned
 		? {
 				id: session.user.id,
 				email: session.user.email,
 				image: session.user.image ?? null,
-				role: ((session.user as Record<string, unknown>).role as string) ?? "user",
+				role: (sessionUser.role as string) ?? "user",
 			}
 		: null;
 

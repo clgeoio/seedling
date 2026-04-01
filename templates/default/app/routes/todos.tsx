@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
-import { Form, redirect, useFetcher } from "react-router";
-import { Trash2 } from "lucide-react";
+import { Form, redirect, useActionData, useFetcher } from "react-router";
+import { ListChecks, Trash2 } from "lucide-react";
 import type { Route } from "./+types/todos";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -97,7 +97,13 @@ function TodoRowItem({ todo }: { todo: TodoRow }) {
 					{todo.title}
 				</span>
 			</div>
-			<Form method="post" className="inline">
+			<Form
+				method="post"
+				className="inline"
+				onSubmit={(e) => {
+					if (!confirm("Delete this todo?")) e.preventDefault();
+				}}
+			>
 				<input type="hidden" name="_intent" value="delete" />
 				<input type="hidden" name="id" value={todo.id} />
 				<Button type="submit" variant="ghost" size="icon" aria-label="Delete todo">
@@ -109,6 +115,8 @@ function TodoRowItem({ todo }: { todo: TodoRow }) {
 }
 
 export default function TodosPage({ loaderData }: Route.ComponentProps) {
+	const actionData = useActionData<typeof action>();
+
 	return (
 		<div className="mx-auto w-full max-w-xl space-y-8 px-4 py-8">
 			<div>
@@ -122,13 +130,19 @@ export default function TodosPage({ loaderData }: Route.ComponentProps) {
 					Add
 				</Button>
 			</Form>
+			{actionData && "error" in actionData ? (
+				<p className="text-sm text-destructive">{actionData.error}</p>
+			) : null}
 			<ul className="space-y-2">
 				{loaderData.todos.map((todo) => (
 					<TodoRowItem key={todo.id} todo={todo} />
 				))}
 			</ul>
 			{loaderData.todos.length === 0 ? (
-				<p className="text-center text-sm text-muted-foreground">No todos yet. Add one above.</p>
+				<div className="flex flex-col items-center gap-2 py-8 text-center">
+					<ListChecks className="size-10 text-muted-foreground/50" />
+					<p className="text-sm text-muted-foreground">No todos yet. Add one above.</p>
+				</div>
 			) : null}
 		</div>
 	);

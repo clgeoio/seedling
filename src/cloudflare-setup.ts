@@ -28,11 +28,18 @@ export async function setupCloudflare(
 	const ids = await createResources(options, targetDir);
 	await patchWranglerConfig(targetDir, ids);
 
-	await runLocalMigrations(targetDir);
-	await runLocalSeed(targetDir);
+	const hasCriticalIds = ids.d1DatabaseId !== null && ids.kvNamespaceId !== null;
 
-	p.log.success("Cloudflare resources configured and local database seeded");
-	return true;
+	const migrated = await runLocalMigrations(targetDir);
+	const seeded = await runLocalSeed(targetDir);
+
+	if (hasCriticalIds && migrated && seeded) {
+		p.log.success("Cloudflare resources configured and local database seeded");
+		return true;
+	}
+
+	p.log.warn("Cloudflare setup completed with warnings — check the steps above.");
+	return false;
 }
 
 async function ensureAuth(targetDir: string): Promise<boolean> {
@@ -284,7 +291,7 @@ async function patchWranglerConfig(targetDir: string, ids: ResourceIds): Promise
 	}
 }
 
-async function runLocalMigrations(targetDir: string): Promise<void> {
+async function runLocalMigrations(targetDir: string): Promise<boolean> {
 	p.log.step("Applying local D1 migrations...");
 	try {
 		execSync("pnpm db:migrate:local", {
@@ -292,12 +299,14 @@ async function runLocalMigrations(targetDir: string): Promise<void> {
 			stdio: "inherit",
 		});
 		p.log.success("Local migrations applied");
+		return true;
 	} catch {
 		p.log.warn("Failed to apply migrations. Run `pnpm db:migrate:local` manually.");
+		return false;
 	}
 }
 
-async function runLocalSeed(targetDir: string): Promise<void> {
+async function runLocalSeed(targetDir: string): Promise<boolean> {
 	p.log.step("Seeding local database...");
 	try {
 		execSync(`${WRANGLER} d1 execute DB --local --file=drizzle/seed/seed.sql`, {
@@ -305,8 +314,10 @@ async function runLocalSeed(targetDir: string): Promise<void> {
 			stdio: "inherit",
 		});
 		p.log.success("Local database seeded");
+		return true;
 	} catch {
 		p.log.warn("Failed to seed database. Run `pnpm db:seed:local` manually.");
+		return false;
 	}
 }
 

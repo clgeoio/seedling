@@ -1,6 +1,6 @@
 import { lt } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import * as schema from "~/drizzle/schema";
+import { getDb } from "~/services/db.server";
 
 /**
  * Delete expired rows from the `verifications` table (email verification, password reset tokens, etc.).
@@ -8,6 +8,6 @@ import * as schema from "~/drizzle/schema";
  * instead; this job is still safe and becomes a no-op on an empty table.
  */
 export async function cleanupVerifications(env: Env): Promise<void> {
-	const db = drizzle(env.DB, { schema });
+	const db = getDb(env);
 	await db.delete(schema.verifications).where(lt(schema.verifications.expiresAt, new Date()));
 }

@@ -89,7 +89,7 @@ async function generateDevVars(targetDir: string): Promise<void> {
 
 	let content = await fs.readFile(examplePath, "utf-8");
 	const secret = randomBytes(32).toString("base64");
-	content = content.replace(/^BETTER_AUTH_SECRET=$/m, `BETTER_AUTH_SECRET=${secret}`);
+	content = content.replace(/^BETTER_AUTH_SECRET=\s*$/m, `BETTER_AUTH_SECRET=${secret}`);
 
 	await fs.writeFile(devVarsPath, content, "utf-8");
 	p.log.success("Generated .dev.vars with BETTER_AUTH_SECRET");

@@ -46,10 +46,15 @@ export async function gatherOptions(
 			process.exit(1);
 		}
 		p.log.info(`Using defaults for project "${projectName}"`);
+		const socialProviders =
+			flags.social && flags.social.length > 0
+				? parseSocialProviders(flags.social)
+				: ["github" as const, "google" as const];
+
 		return {
 			projectName,
 			displayName: toTitleCase(projectName),
-			socialProviders: flags.social ? parseSocialProviders(flags.social) : ["github", "google"],
+			socialProviders,
 			includeAdmin: flags.admin ?? true,
 			includeR2: flags.r2 ?? false,
 			includeTodos: flags.todos ?? true,
@@ -57,7 +62,7 @@ export async function gatherOptions(
 			includeQueues: flags.queues ?? false,
 			installDeps: flags.install ?? true,
 			initGit: flags.git ?? true,
-			setupCloudflare: flags.cloudflare ?? false,
+			setupCloudflare: (flags.install ?? true) ? (flags.cloudflare ?? false) : false,
 		};
 	}
 

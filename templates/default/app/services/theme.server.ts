@@ -14,6 +14,7 @@ export function getTheme(request: Request): Theme {
 	return "system";
 }
 
-export function setThemeCookie(theme: Theme): string {
-	return `${THEME_COOKIE_NAME}=${theme}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`;
+export function setThemeCookie(theme: Theme, isSecure = true): string {
+	const base = `${THEME_COOKIE_NAME}=${theme}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`;
+	return isSecure ? `${base}; Secure` : base;
 }

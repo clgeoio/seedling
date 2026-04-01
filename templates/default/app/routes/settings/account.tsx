@@ -12,12 +12,10 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { authClient, useSession } from "~/services/auth/client";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export default function SettingsAccount() {
 	const { data: session, isPending: sessionPending } = useSession();
 
-	const [email, setEmail] = useState("");
+	const [name, setName] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
@@ -25,29 +23,22 @@ export default function SettingsAccount() {
 	useEffect(() => {
 		const user = session?.user;
 		if (!user) return;
-		setEmail(user.email ?? "");
+		setName(user.name ?? user.email ?? "");
 	}, [session?.user]);
-
-	function validate(): string | null {
-		if (!EMAIL_RE.test(email.trim())) {
-			return "Enter a valid email address";
-		}
-		return null;
-	}
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		setError(null);
-		setSuccess(null);
-		const validationError = validate();
-		if (validationError) {
-			setError(validationError);
+		const trimmed = name.trim();
+		if (!trimmed) {
+			setError("Name is required");
 			return;
 		}
+		setError(null);
+		setSuccess(null);
 		setSaving(true);
 		try {
 			const result = await authClient.updateUser({
-				name: email.trim(),
+				name: trimmed,
 			});
 			if (result.error) {
 				setError(result.error.message ?? "Could not update profile");
@@ -71,22 +62,26 @@ export default function SettingsAccount() {
 		<Card>
 			<CardHeader>
 				<CardTitle>Account</CardTitle>
-				<CardDescription>Update your email address.</CardDescription>
+				<CardDescription>Manage your display name and profile.</CardDescription>
 			</CardHeader>
 			<form onSubmit={(e) => void handleSubmit(e)}>
 				<CardContent className="space-y-4">
 					<div className="space-y-2">
-						<Label htmlFor="settings-email">Email</Label>
+						<Label htmlFor="settings-name">Display name</Label>
 						<Input
-							id="settings-email"
-							name="email"
-							type="email"
-							autoComplete="email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
+							id="settings-name"
+							name="name"
+							type="text"
+							autoComplete="name"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
 							disabled={saving}
 							required
 						/>
+					</div>
+					<div className="space-y-2">
+						<Label>Email</Label>
+						<p className="text-sm text-muted-foreground">{session.user.email}</p>
 					</div>
 					{error ? <p className="text-sm text-destructive">{error}</p> : null}
 					{success ? <p className="text-sm text-muted-foreground">{success}</p> : null}
