@@ -16,7 +16,8 @@ export async function handleQueue(batch: MessageBatch, env: Env): Promise<void> 
 					break;
 			}
 			message.ack();
-		} catch {
+		} catch (error) {
+			console.error(`Queue message failed (attempt ${message.attempts + 1})`, error);
 			message.retry();
 		}
 	}
