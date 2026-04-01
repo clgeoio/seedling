@@ -58,8 +58,7 @@ export async function gatherOptions(
 					defaultValue: projectNameArg ?? "my-app",
 					validate: (value) => {
 						if (!value) return "Project name is required";
-						if (!/^[a-z0-9-]+$/.test(value))
-							return "Must be lowercase alphanumeric with hyphens";
+						if (!/^[a-z0-9-]+$/.test(value)) return "Must be lowercase alphanumeric with hyphens";
 					},
 				}),
 			displayName: ({ results }) => {
@@ -84,12 +83,10 @@ export async function gatherOptions(
 			includeTodos: () => p.confirm({ message: "Include example todos?", initialValue: true }),
 			includeCron: () =>
 				p.confirm({ message: "Include cron trigger handlers?", initialValue: false }),
-			includeQueues: () =>
-				p.confirm({ message: "Include queue handlers?", initialValue: false }),
+			includeQueues: () => p.confirm({ message: "Include queue handlers?", initialValue: false }),
 			installDeps: () =>
 				p.confirm({ message: "Install dependencies with pnpm?", initialValue: true }),
-			initGit: () =>
-				p.confirm({ message: "Initialize git repository?", initialValue: true }),
+			initGit: () => p.confirm({ message: "Initialize git repository?", initialValue: true }),
 			setupCloudflare: ({ results }) =>
 				results.installDeps
 					? p.confirm({

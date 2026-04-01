@@ -143,10 +143,7 @@ export function processConditionals(content: string, context: TemplateContext): 
 	return result.join("\n");
 }
 
-function processLines(
-	lines: string[],
-	context: TemplateContext,
-): string[] {
+function processLines(lines: string[], context: TemplateContext): string[] {
 	const result: string[] = [];
 	let i = 0;
 

@@ -96,22 +96,14 @@ describe("processConditionals", () => {
 	});
 
 	it("handles {{#unless}} - keeps when false", () => {
-		const input = [
-			"// {{#unless includeR2}}",
-			"  no R2 fallback",
-			"// {{/unless}}",
-		].join("\n");
+		const input = ["// {{#unless includeR2}}", "  no R2 fallback", "// {{/unless}}"].join("\n");
 
 		const result = processConditionals(input, minimalContext());
 		expect(result).toContain("no R2 fallback");
 	});
 
 	it("handles {{#unless}} - removes when true", () => {
-		const input = [
-			"// {{#unless includeR2}}",
-			"  no R2 fallback",
-			"// {{/unless}}",
-		].join("\n");
+		const input = ["// {{#unless includeR2}}", "  no R2 fallback", "// {{/unless}}"].join("\n");
 
 		const result = processConditionals(input, fullContext());
 		expect(result).not.toContain("no R2 fallback");
@@ -164,22 +156,14 @@ describe("processConditionals", () => {
 	});
 
 	it("handles SQL comment syntax", () => {
-		const input = [
-			"-- {{#if includeTodos}}",
-			"CREATE TABLE todos (...);",
-			"-- {{/if}}",
-		].join("\n");
+		const input = ["-- {{#if includeTodos}}", "CREATE TABLE todos (...);", "-- {{/if}}"].join("\n");
 
 		const result = processConditionals(input, minimalContext());
 		expect(result).not.toContain("CREATE TABLE todos");
 	});
 
 	it("handles hash comment syntax for env files", () => {
-		const input = [
-			"# {{#if hasGithub}}",
-			"GITHUB_CLIENT_ID=",
-			"# {{/if}}",
-		].join("\n");
+		const input = ["# {{#if hasGithub}}", "GITHUB_CLIENT_ID=", "# {{/if}}"].join("\n");
 
 		const result = processConditionals(input, minimalContext());
 		expect(result).not.toContain("GITHUB_CLIENT_ID");

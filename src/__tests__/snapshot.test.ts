@@ -237,14 +237,32 @@ describe("scaffold template processing", () => {
 			for (const file of files) {
 				const fullPath = path.join(targetDir, file);
 				const ext = path.extname(file);
-				const textExts = new Set([".ts", ".tsx", ".js", ".json", ".jsonc", ".css", ".yml", ".sql", ".cjs"]);
+				const textExts = new Set([
+					".ts",
+					".tsx",
+					".js",
+					".json",
+					".jsonc",
+					".css",
+					".yml",
+					".sql",
+					".cjs",
+				]);
 				if (!textExts.has(ext) && !file.startsWith(".")) continue;
 
 				const content = await fs.readFile(fullPath, "utf-8");
-				expect(content, `File ${file} contains template syntax`).not.toMatch(/\{\{#(?:if|unless)\s+\w+\}\}/);
-				expect(content, `File ${file} contains closing template syntax`).not.toMatch(/\{\{\/(?:if|unless)\}\}/);
-				expect(content, `File ${file} contains unsubstituted variable`).not.toMatch(/\{\{projectName\}\}/);
-				expect(content, `File ${file} contains unsubstituted variable`).not.toMatch(/\{\{displayName\}\}/);
+				expect(content, `File ${file} contains template syntax`).not.toMatch(
+					/\{\{#(?:if|unless)\s+\w+\}\}/,
+				);
+				expect(content, `File ${file} contains closing template syntax`).not.toMatch(
+					/\{\{\/(?:if|unless)\}\}/,
+				);
+				expect(content, `File ${file} contains unsubstituted variable`).not.toMatch(
+					/\{\{projectName\}\}/,
+				);
+				expect(content, `File ${file} contains unsubstituted variable`).not.toMatch(
+					/\{\{displayName\}\}/,
+				);
 			}
 		} finally {
 			process.chdir(origCwd);

@@ -13,7 +13,10 @@ interface ResourceIds {
 	kvNamespaceId: string | null;
 }
 
-export async function setupCloudflare(options: ProjectOptions, targetDir: string): Promise<boolean> {
+export async function setupCloudflare(
+	options: ProjectOptions,
+	targetDir: string,
+): Promise<boolean> {
 	p.log.step(pc.bold("Setting up Cloudflare resources..."));
 
 	const authed = await ensureAuth(targetDir);

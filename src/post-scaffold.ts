@@ -73,10 +73,7 @@ function showNextSteps(options: ProjectOptions, cloudflareReady: boolean): void 
 
 	steps.push(`  ${pc.cyan(`${step}.`)} pnpm dev`);
 
-	p.note(
-		[`${pc.bold("Next steps:")}`, "", ...steps].join("\n"),
-		"Your project is ready!",
-	);
+	p.note([`${pc.bold("Next steps:")}`, "", ...steps].join("\n"), "Your project is ready!");
 }
 
 async function generateDevVars(targetDir: string): Promise<void> {

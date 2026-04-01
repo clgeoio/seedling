@@ -18,18 +18,18 @@ npx github:clgeoio/seedling create my-app --yes
 
 A production-ready full-stack app deployed to Cloudflare Workers, with:
 
-| Layer          | Technology                                       |
-| -------------- | ------------------------------------------------ |
-| Runtime        | Cloudflare Workers                               |
-| Framework      | React Router 7 (SSR, file-based routing)         |
-| Database       | Cloudflare D1 (SQLite) + Drizzle ORM             |
-| Auth           | Better Auth (email/password, social, sessions)   |
-| Email          | Resend                                           |
-| Storage        | Cloudflare KV (sessions) + R2 (images, optional) |
-| Styling        | TailwindCSS v4 + shadcn/ui                       |
-| Formatter      | oxfmt                                            |
-| Linter         | oxlint                                           |
-| Package Manager| pnpm                                             |
+| Layer           | Technology                                       |
+| --------------- | ------------------------------------------------ |
+| Runtime         | Cloudflare Workers                               |
+| Framework       | React Router 7 (SSR, file-based routing)         |
+| Database        | Cloudflare D1 (SQLite) + Drizzle ORM             |
+| Auth            | Better Auth (email/password, social, sessions)   |
+| Email           | Resend                                           |
+| Storage         | Cloudflare KV (sessions) + R2 (images, optional) |
+| Styling         | TailwindCSS v4 + shadcn/ui                       |
+| Formatter       | oxfmt                                            |
+| Linter          | oxlint                                           |
+| Package Manager | pnpm                                             |
 
 ### Always Included
 
@@ -46,15 +46,15 @@ A production-ready full-stack app deployed to Cloudflare Workers, with:
 
 ### Optional Features (CLI Prompts)
 
-| Feature               | Default | Description                                              |
-| --------------------- | ------- | -------------------------------------------------------- |
-| GitHub social auth     | on      | OAuth sign-in with GitHub                                |
-| Google social auth     | on      | OAuth sign-in with Google                                |
-| Admin panel            | on      | Dashboard, user management, RBAC via Better Auth         |
-| Example todos          | on      | Full CRUD todo list demonstrating Drizzle + D1           |
-| R2 image storage       | off     | Image upload/serve via Cloudflare R2                     |
-| Cron trigger handlers  | off     | Scheduled tasks (session cleanup, verification cleanup)  |
-| Queue handlers         | off     | Cloudflare Queues consumer for async email delivery      |
+| Feature               | Default | Description                                             |
+| --------------------- | ------- | ------------------------------------------------------- |
+| GitHub social auth    | on      | OAuth sign-in with GitHub                               |
+| Google social auth    | on      | OAuth sign-in with Google                               |
+| Admin panel           | on      | Dashboard, user management, RBAC via Better Auth        |
+| Example todos         | on      | Full CRUD todo list demonstrating Drizzle + D1          |
+| R2 image storage      | off     | Image upload/serve via Cloudflare R2                    |
+| Cron trigger handlers | off     | Scheduled tasks (session cleanup, verification cleanup) |
+| Queue handlers        | off     | Cloudflare Queues consumer for async email delivery     |
 
 ## CLI Usage
 
@@ -146,25 +146,25 @@ pnpm dev                 # Start dev server at http://localhost:5173
 
 ## Generated Project Scripts
 
-| Script                  | Description                                        |
-| ----------------------- | -------------------------------------------------- |
-| `pnpm dev`              | Start Vite dev server                              |
-| `pnpm build`            | Build for production                               |
-| `pnpm preview`          | Preview production build locally via Wrangler      |
-| `pnpm deploy`           | Deploy to Cloudflare Workers                       |
-| `pnpm typecheck`        | Run TypeScript type checking                       |
-| `pnpm lint`             | Lint with oxlint                                   |
-| `pnpm format`           | Format with oxfmt                                  |
-| `pnpm db:generate`      | Generate Drizzle migrations                        |
-| `pnpm db:migrate:local` | Apply D1 migrations locally                        |
-| `pnpm db:migrate:remote`| Apply D1 migrations to production                  |
-| `pnpm db:seed:local`    | Seed local database                                |
-| `pnpm db:seed:remote`   | Seed remote database                               |
-| `pnpm db:studio`        | Open Drizzle Studio                                |
-| `pnpm db:reset:local`   | Reset local database                               |
-| `pnpm db:delete:local`  | Delete local `.wrangler/state`                     |
-| `pnpm auth:secret`      | Generate a Better Auth secret                      |
-| `pnpm auth:generate`    | Regenerate auth schema from Better Auth config     |
+| Script                   | Description                                    |
+| ------------------------ | ---------------------------------------------- |
+| `pnpm dev`               | Start Vite dev server                          |
+| `pnpm build`             | Build for production                           |
+| `pnpm preview`           | Preview production build locally via Wrangler  |
+| `pnpm deploy`            | Deploy to Cloudflare Workers                   |
+| `pnpm typecheck`         | Run TypeScript type checking                   |
+| `pnpm lint`              | Lint with oxlint                               |
+| `pnpm format`            | Format with oxfmt                              |
+| `pnpm db:generate`       | Generate Drizzle migrations                    |
+| `pnpm db:migrate:local`  | Apply D1 migrations locally                    |
+| `pnpm db:migrate:remote` | Apply D1 migrations to production              |
+| `pnpm db:seed:local`     | Seed local database                            |
+| `pnpm db:seed:remote`    | Seed remote database                           |
+| `pnpm db:studio`         | Open Drizzle Studio                            |
+| `pnpm db:reset:local`    | Reset local database                           |
+| `pnpm db:delete:local`   | Delete local `.wrangler/state`                 |
+| `pnpm auth:secret`       | Generate a Better Auth secret                  |
+| `pnpm auth:generate`     | Regenerate auth schema from Better Auth config |
 
 ## Project Structure
 

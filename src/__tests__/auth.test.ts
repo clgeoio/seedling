@@ -198,7 +198,11 @@ describe("auth flow", { sequential: true }, () => {
 	it("sign out invalidates the session", async () => {
 		const res = await fetch(`${AUTH_API}/sign-out`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json", Accept: "application/json", Cookie: sessionCookies },
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
+				Cookie: sessionCookies,
+			},
 			body: JSON.stringify({}),
 		});
 		expect(res.status).toBe(200);

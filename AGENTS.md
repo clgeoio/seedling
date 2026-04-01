@@ -6,32 +6,32 @@
 
 ## Quick commands
 
-| Command | Purpose |
-|---------|---------|
-| `pnpm build` | Build the CLI (required before testing) |
-| `pnpm test` | Run all tests (~5 min total) |
-| `pnpm vitest run src/__tests__/scaffold.test.ts` | Fast unit tests only (~2s) |
-| `pnpm vitest run src/__tests__/snapshot.test.ts` | Snapshot tests for template output |
-| `pnpm typecheck` | TypeScript type checking |
-| `pnpm lint` | Lint with oxlint |
-| `pnpm format` | Format with oxfmt |
-| `pnpm format:check` | Check formatting without writing |
-| `make verify` | Build + typecheck + lint + format check + all tests |
-| `make test-fast` | Build + unit + snapshot tests only |
-| `make try` | Build and scaffold a test project to `/tmp/seedling-try` |
+| Command                                          | Purpose                                                  |
+| ------------------------------------------------ | -------------------------------------------------------- |
+| `pnpm build`                                     | Build the CLI (required before testing)                  |
+| `pnpm test`                                      | Run all tests (~5 min total)                             |
+| `pnpm vitest run src/__tests__/scaffold.test.ts` | Fast unit tests only (~2s)                               |
+| `pnpm vitest run src/__tests__/snapshot.test.ts` | Snapshot tests for template output                       |
+| `pnpm typecheck`                                 | TypeScript type checking                                 |
+| `pnpm lint`                                      | Lint with oxlint                                         |
+| `pnpm format`                                    | Format with oxfmt                                        |
+| `pnpm format:check`                              | Check formatting without writing                         |
+| `make verify`                                    | Build + typecheck + lint + format check + all tests      |
+| `make test-fast`                                 | Build + unit + snapshot tests only                       |
+| `make try`                                       | Build and scaffold a test project to `/tmp/seedling-try` |
 
 ## Architecture
 
 ### Source files (`src/`)
 
-| File | Purpose |
-|------|---------|
-| `index.ts` | CLI entrypoint (Commander). Parses args and flags, delegates to prompts → scaffold → post-scaffold |
-| `types.ts` | `ProjectOptions`, `TemplateContext`, and `CliFlags` interfaces |
-| `prompts.ts` | Interactive prompts using @clack/prompts. Gathers project options, skippable via `--yes` with flag overrides |
-| `scaffold.ts` | Template engine. Copies `templates/default/`, removes conditional paths, renames dot-prefixed files, processes template variables and conditionals |
-| `post-scaffold.ts` | Post-scaffold steps: generates `.dev.vars`, inits git, installs deps, runs Cloudflare setup |
-| `cloudflare-setup.ts` | Optional Cloudflare resource provisioning (D1, KV, R2, Queues) via wrangler CLI |
+| File                  | Purpose                                                                                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`            | CLI entrypoint (Commander). Parses args and flags, delegates to prompts → scaffold → post-scaffold                                                 |
+| `types.ts`            | `ProjectOptions`, `TemplateContext`, and `CliFlags` interfaces                                                                                     |
+| `prompts.ts`          | Interactive prompts using @clack/prompts. Gathers project options, skippable via `--yes` with flag overrides                                       |
+| `scaffold.ts`         | Template engine. Copies `templates/default/`, removes conditional paths, renames dot-prefixed files, processes template variables and conditionals |
+| `post-scaffold.ts`    | Post-scaffold steps: generates `.dev.vars`, inits git, installs deps, runs Cloudflare setup                                                        |
+| `cloudflare-setup.ts` | Optional Cloudflare resource provisioning (D1, KV, R2, Queues) via wrangler CLI                                                                    |
 
 ### Template directory (`templates/default/`)
 
@@ -49,16 +49,16 @@
 
 Available feature flags for conditionals:
 
-| Flag | Controls |
-|------|----------|
-| `includeAdmin` | Admin panel routes and RBAC permissions |
-| `includeR2` | R2 image storage routes and service |
-| `includeTodos` | Example todo CRUD routes and schema |
-| `includeCron` | Cron trigger handler directory |
-| `includeQueues` | Queue consumer directory |
-| `hasGithub` | GitHub OAuth provider config |
-| `hasGoogle` | Google OAuth provider config |
-| `hasSocialAuth` | Any social auth provider enabled |
+| Flag            | Controls                                |
+| --------------- | --------------------------------------- |
+| `includeAdmin`  | Admin panel routes and RBAC permissions |
+| `includeR2`     | R2 image storage routes and service     |
+| `includeTodos`  | Example todo CRUD routes and schema     |
+| `includeCron`   | Cron trigger handler directory          |
+| `includeQueues` | Queue consumer directory                |
+| `hasGithub`     | GitHub OAuth provider config            |
+| `hasGoogle`     | Google OAuth provider config            |
+| `hasSocialAuth` | Any social auth provider enabled        |
 
 ## Testing workflow
 
