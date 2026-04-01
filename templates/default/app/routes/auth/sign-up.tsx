@@ -15,22 +15,13 @@ import { Label } from "~/components/ui/label";
 import { signIn, signUp } from "~/services/auth/client";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_RE = /^[a-zA-Z0-9_-]{3,32}$/;
 
 function validateForm(input: {
-	name: string;
 	email: string;
-	username: string;
 	password: string;
 }): string | null {
-	if (!input.name.trim()) {
-		return "Name is required";
-	}
 	if (!EMAIL_RE.test(input.email.trim())) {
 		return "Enter a valid email address";
-	}
-	if (!USERNAME_RE.test(input.username.trim())) {
-		return "Username must be 3–32 characters (letters, numbers, _ or -)";
 	}
 	if (input.password.length < 8) {
 		return "Password must be at least 8 characters";
@@ -41,16 +32,14 @@ function validateForm(input: {
 export default function AuthSignUp() {
 	const navigate = useNavigate();
 
-	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
-	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [pending, setPending] = useState(false);
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		const validationError = validateForm({ name, email, username, password });
+		const validationError = validateForm({ email, password });
 		if (validationError) {
 			setError(validationError);
 			return;
@@ -59,9 +48,8 @@ export default function AuthSignUp() {
 		setPending(true);
 		try {
 			const result = await signUp.email({
-				name: name.trim(),
+				name: email.trim(),
 				email: email.trim(),
-				username: username.trim(),
 				password,
 				callbackURL: "/",
 			});
@@ -84,32 +72,6 @@ export default function AuthSignUp() {
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
-						<div className="space-y-2">
-							<Label htmlFor="name">Name</Label>
-							<Input
-								id="name"
-								type="text"
-								autoComplete="name"
-								value={name}
-								onChange={(e) => setName(e.target.value)}
-								required
-								disabled={pending}
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="username">Username</Label>
-							<Input
-								id="username"
-								type="text"
-								autoComplete="username"
-								value={username}
-								onChange={(e) => setUsername(e.target.value)}
-								required
-								minLength={3}
-								maxLength={32}
-								disabled={pending}
-							/>
-						</div>
 						<div className="space-y-2">
 							<Label htmlFor="email">Email</Label>
 							<Input

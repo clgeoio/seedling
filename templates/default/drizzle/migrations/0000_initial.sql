@@ -6,8 +6,6 @@ CREATE TABLE `users` (
 	`email` text NOT NULL,
 	`emailVerified` integer DEFAULT false NOT NULL,
 	`image` text,
-	`username` text,
-	`displayUsername` text,
 	`role` text DEFAULT 'user' NOT NULL,
 	`banned` integer DEFAULT false NOT NULL,
 	`banReason` text,
@@ -17,7 +15,6 @@ CREATE TABLE `users` (
 );
 
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);
-CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);
 
 CREATE TABLE `sessions` (
 	`id` text PRIMARY KEY NOT NULL,

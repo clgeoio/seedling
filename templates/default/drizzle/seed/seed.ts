@@ -39,12 +39,10 @@ async function main(): Promise<void> {
 
 	await db.insert(schema.users).values({
 		id: userId,
-		name: "Admin",
+		name: adminEmail,
 		email: adminEmail,
 		emailVerified: true,
 		image: null,
-		username: "admin",
-		displayUsername: "Admin",
 		role: "admin",
 		banned: false,
 		banReason: null,

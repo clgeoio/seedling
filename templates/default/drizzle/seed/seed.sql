@@ -7,8 +7,6 @@ INSERT OR IGNORE INTO "users" (
 	"email",
 	"emailVerified",
 	"image",
-	"username",
-	"displayUsername",
 	"role",
 	"banned",
 	"banReason",
@@ -17,12 +15,10 @@ INSERT OR IGNORE INTO "users" (
 	"updatedAt"
 ) VALUES (
 	'seed-admin-user',
-	'Admin',
+	'admin@example.com',
 	'admin@example.com',
 	1,
 	NULL,
-	'admin',
-	'Admin',
 	'admin',
 	0,
 	NULL,

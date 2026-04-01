@@ -38,15 +38,13 @@ const BASE = `http://localhost:${DEV_PORT}`;
 const AUTH_API = `${BASE}/api/auth`;
 
 const TEST_USER = {
-	name: "Test User",
+	name: "test@example.com",
 	email: "test@example.com",
 	password: "TestPassword123!",
-	username: "testuser",
 };
 
 interface AuthUser {
 	id: string;
-	name: string;
 	email: string;
 }
 
@@ -164,7 +162,6 @@ describe("auth flow", { sequential: true }, () => {
 		const body = (await res.json()) as AuthResponse;
 		expect(body.user).toBeDefined();
 		expect(body.user?.email).toBe(TEST_USER.email);
-		expect(body.user?.name).toBe(TEST_USER.name);
 	}, 15_000);
 
 	it("sign in returns a session cookie", async () => {

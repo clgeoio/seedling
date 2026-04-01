@@ -5,7 +5,6 @@ import { authContext, cloudflareContext } from "~/contexts";
 export interface AuthContext {
 	user: {
 		id: string;
-		name: string;
 		email: string;
 		image: string | null;
 		role: string;
@@ -27,7 +26,6 @@ export const authMiddleware: MiddlewareFunction = async ({ request, context }, n
 	const user = session?.user
 		? {
 				id: session.user.id,
-				name: session.user.name,
 				email: session.user.email,
 				image: session.user.image ?? null,
 				role: ((session.user as Record<string, unknown>).role as string) ?? "user",

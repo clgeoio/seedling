@@ -31,7 +31,6 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
 				<Table>
 					<TableHeader>
 						<TableRow>
-							<TableHead>Name</TableHead>
 							<TableHead>Email</TableHead>
 							<TableHead>Role</TableHead>
 							<TableHead>Status</TableHead>
@@ -40,15 +39,14 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
 					<TableBody>
 						{loaderData.users.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+								<TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
 									No users yet.
 								</TableCell>
 							</TableRow>
 						) : (
 							loaderData.users.map((row) => (
 								<TableRow key={row.id}>
-									<TableCell className="font-medium">{row.name}</TableCell>
-									<TableCell>{row.email}</TableCell>
+									<TableCell className="font-medium">{row.email}</TableCell>
 									<TableCell>
 										<Badge variant={row.role === "admin" ? "default" : "secondary"}>
 											{row.role ?? "user"}

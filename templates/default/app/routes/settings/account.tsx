@@ -13,13 +13,10 @@ import { Label } from "~/components/ui/label";
 import { authClient, useSession } from "~/services/auth/client";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_RE = /^[a-zA-Z0-9_-]{3,32}$/;
 
 export default function SettingsAccount() {
 	const { data: session, isPending: sessionPending } = useSession();
 
-	const [name, setName] = useState("");
-	const [username, setUsername] = useState("");
 	const [email, setEmail] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
@@ -28,20 +25,12 @@ export default function SettingsAccount() {
 	useEffect(() => {
 		const user = session?.user;
 		if (!user) return;
-		setName(user.name ?? "");
-		setUsername("username" in user && typeof user.username === "string" ? user.username : "");
 		setEmail(user.email ?? "");
 	}, [session?.user]);
 
 	function validate(): string | null {
-		if (!name.trim()) {
-			return "Name is required";
-		}
 		if (!EMAIL_RE.test(email.trim())) {
 			return "Enter a valid email address";
-		}
-		if (username.trim() && !USERNAME_RE.test(username.trim())) {
-			return "Username must be 3–32 characters (letters, numbers, _ or -)";
 		}
 		return null;
 	}
@@ -58,8 +47,7 @@ export default function SettingsAccount() {
 		setSaving(true);
 		try {
 			const result = await authClient.updateUser({
-				name: name.trim(),
-				username: username.trim() || undefined,
+				name: email.trim(),
 			});
 			if (result.error) {
 				setError(result.error.message ?? "Could not update profile");
@@ -83,34 +71,10 @@ export default function SettingsAccount() {
 		<Card>
 			<CardHeader>
 				<CardTitle>Account</CardTitle>
-				<CardDescription>Update your name, username, and email.</CardDescription>
+				<CardDescription>Update your email address.</CardDescription>
 			</CardHeader>
 			<form onSubmit={(e) => void handleSubmit(e)}>
 				<CardContent className="space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor="settings-name">Name</Label>
-						<Input
-							id="settings-name"
-							name="name"
-							autoComplete="name"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							disabled={saving}
-							required
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="settings-username">Username</Label>
-						<Input
-							id="settings-username"
-							name="username"
-							autoComplete="username"
-							value={username}
-							onChange={(e) => setUsername(e.target.value)}
-							disabled={saving}
-							placeholder="your-handle"
-						/>
-					</div>
 					<div className="space-y-2">
 						<Label htmlFor="settings-email">Email</Label>
 						<Input

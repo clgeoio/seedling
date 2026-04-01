@@ -3,7 +3,6 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 // {{#if includeAdmin}}
 import { admin } from "better-auth/plugins";
 // {{/if}}
-import { username } from "better-auth/plugins";
 import { getDb } from "~/services/db.server";
 import { sendEmail } from "~/services/email.server";
 
@@ -62,7 +61,6 @@ export function createAuth(env: Env) {
 		},
 
 		plugins: [
-			username(),
 // {{#if includeAdmin}}
 			admin({
 				adminUserIds: env.BETTER_AUTH_ADMIN_USER_ID

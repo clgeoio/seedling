@@ -28,14 +28,7 @@ export function UserMenu() {
 		);
 	}
 
-	const initials =
-		user.name
-			?.split(/\s+/)
-			.filter(Boolean)
-			.map((part) => part.charAt(0))
-			.join("")
-			.slice(0, 2)
-			.toUpperCase() || "U";
+	const initials = user.email?.charAt(0).toUpperCase() || "U";
 
 	return (
 		<DropdownMenu>
@@ -50,8 +43,7 @@ export function UserMenu() {
 			<DropdownMenuContent className="w-56" align="end">
 				<DropdownMenuLabel className="font-normal">
 					<div className="flex flex-col space-y-1">
-						<p className="text-sm font-medium leading-none">{user.name}</p>
-						<p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+						<p className="text-sm font-medium leading-none">{user.email}</p>
 					</div>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
