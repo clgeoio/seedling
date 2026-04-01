@@ -6,19 +6,13 @@ import pc from "picocolors";
 import type { ProjectOptions } from "./types.js";
 
 const WRANGLER = "pnpm exec wrangler";
+const EXEC_TIMEOUT_MS = 30_000;
 
 interface ResourceIds {
 	d1DatabaseId: string | null;
 	kvNamespaceId: string | null;
 }
 
-/**
- * Provisions Cloudflare resources (D1, KV, R2, Queues) via wrangler CLI,
- * patches `wrangler.jsonc` with the created resource IDs, and runs
- * local database migrations and seeding.
- *
- * @returns `true` if all resources were created and the project is ready to run
- */
 export async function setupCloudflare(options: ProjectOptions, targetDir: string): Promise<boolean> {
 	p.log.step(pc.bold("Setting up Cloudflare resources..."));
 
@@ -99,7 +93,7 @@ function runLogin(targetDir: string): boolean {
 	return true;
 }
 
-function parseAccountInfo(whoamiOutput: string): string | null {
+export function parseAccountInfo(whoamiOutput: string): string | null {
 	const emailMatch = whoamiOutput.match(/associated with the email\s+(\S+)/i);
 	if (emailMatch?.[1]) return emailMatch[1].replace(/\.?$/, "");
 
@@ -109,6 +103,44 @@ function parseAccountInfo(whoamiOutput: string): string | null {
 	return null;
 }
 
+export function parseD1DatabaseId(output: string): string | null {
+	const jsonMatch = output.match(/"database_id"\s*:\s*"([^"]+)"/);
+	if (jsonMatch?.[1]) return jsonMatch[1];
+
+	const tomlMatch = output.match(/database_id\s*=\s*"([^"]+)"/);
+	if (tomlMatch?.[1]) return tomlMatch[1];
+
+	const uuidMatch = output.match(
+		/Successfully created DB[\s\S]*?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i,
+	);
+	if (uuidMatch?.[1]) return uuidMatch[1];
+
+	return null;
+}
+
+export function parseKvNamespaceId(output: string): string | null {
+	const jsonMatch = output.match(/"id"\s*:\s*"([0-9a-f]{32})"/);
+	if (jsonMatch?.[1]) return jsonMatch[1];
+
+	const tomlMatch = output.match(/id\s*=\s*"([0-9a-f]{32})"/);
+	if (tomlMatch?.[1]) return tomlMatch[1];
+
+	return null;
+}
+
+export function extractErrorMessage(output: string): string {
+	const clean = stripAnsi(output);
+	const errorMatch = clean.match(/\[ERROR]\s*(.+)/);
+	if (errorMatch?.[1]) return errorMatch[1].trim();
+
+	const lines = clean.split("\n").filter((l) => l.trim());
+	return lines[0] ?? "unknown error";
+}
+
+function stripAnsi(str: string): string {
+	return str.replace(/\x1b\[[0-9;]*m/g, "");
+}
+
 async function createResources(options: ProjectOptions, targetDir: string): Promise<ResourceIds> {
 	const ids: ResourceIds = {
 		d1DatabaseId: null,
@@ -116,7 +148,7 @@ async function createResources(options: ProjectOptions, targetDir: string): Prom
 	};
 
 	ids.d1DatabaseId = await createD1Database(options.projectName, targetDir);
-	ids.kvNamespaceId = await createKvNamespace(targetDir);
+	ids.kvNamespaceId = await createKvNamespace(options.projectName, targetDir);
 
 	if (options.includeR2) {
 		await createR2Bucket(options.projectName, targetDir);
@@ -135,7 +167,7 @@ async function createD1Database(projectName: string, targetDir: string): Promise
 
 	const result = tryExec(`${WRANGLER} d1 create ${dbName}`, targetDir);
 	if (result.success) {
-		const id = result.output.match(/database_id\s*=\s*"([^"]+)"/)?.[1] ?? null;
+		const id = parseD1DatabaseId(result.output);
 		if (id) {
 			p.log.success(`D1 database created: ${pc.dim(id)}`);
 			return id;
@@ -149,12 +181,13 @@ async function createD1Database(projectName: string, targetDir: string): Promise
 	return promptForId(`Enter D1 database ID for "${dbName}" (or leave blank to skip)`);
 }
 
-async function createKvNamespace(targetDir: string): Promise<string | null> {
-	p.log.step("Creating KV namespace \"APP_KV\"...");
+async function createKvNamespace(projectName: string, targetDir: string): Promise<string | null> {
+	const kvName = `${projectName}-kv`;
+	p.log.step(`Creating KV namespace "${kvName}"...`);
 
-	const result = tryExec(`${WRANGLER} kv namespace create APP_KV`, targetDir);
+	const result = tryExec(`${WRANGLER} kv namespace create ${kvName}`, targetDir);
 	if (result.success) {
-		const id = result.output.match(/id\s*=\s*"([^"]+)"/)?.[1] ?? null;
+		const id = parseKvNamespaceId(result.output);
 		if (id) {
 			p.log.success(`KV namespace created: ${pc.dim(id)}`);
 			return id;
@@ -165,7 +198,7 @@ async function createKvNamespace(targetDir: string): Promise<string | null> {
 		p.log.warn(`Failed to create KV namespace: ${errLine}`);
 	}
 
-	return promptForId("Enter KV namespace ID for \"APP_KV\" (or leave blank to skip)");
+	return promptForId(`Enter KV namespace ID for "${kvName}" (or leave blank to skip)`);
 }
 
 async function createR2Bucket(projectName: string, targetDir: string): Promise<void> {
@@ -259,14 +292,6 @@ async function runLocalSeed(targetDir: string): Promise<void> {
 	}
 }
 
-function extractErrorMessage(output: string): string {
-	const errorMatch = output.match(/\[ERROR]\s*(.+)/);
-	if (errorMatch?.[1]) return errorMatch[1].trim();
-
-	const lines = output.split("\n").filter((l) => l.trim());
-	return lines[0] ?? "unknown error";
-}
-
 interface ExecResult {
 	success: boolean;
 	stdout: string;
@@ -280,6 +305,7 @@ function tryExec(command: string, cwd: string): ExecResult {
 		encoding: "utf-8",
 		shell: true,
 		stdio: ["pipe", "pipe", "pipe"],
+		timeout: EXEC_TIMEOUT_MS,
 	});
 
 	const stdout = result.stdout ?? "";

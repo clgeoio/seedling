@@ -288,6 +288,7 @@ import * as p2 from "@clack/prompts";
 import fs2 from "fs-extra";
 import pc2 from "picocolors";
 var WRANGLER = "pnpm exec wrangler";
+var EXEC_TIMEOUT_MS = 3e4;
 async function setupCloudflare(options, targetDir) {
   p2.log.step(pc2.bold("Setting up Cloudflare resources..."));
   const authed = await ensureAuth(targetDir);
@@ -357,13 +358,41 @@ function parseAccountInfo(whoamiOutput) {
   if (tableMatch?.[1]) return tableMatch[1].trim();
   return null;
 }
+function parseD1DatabaseId(output) {
+  const jsonMatch = output.match(/"database_id"\s*:\s*"([^"]+)"/);
+  if (jsonMatch?.[1]) return jsonMatch[1];
+  const tomlMatch = output.match(/database_id\s*=\s*"([^"]+)"/);
+  if (tomlMatch?.[1]) return tomlMatch[1];
+  const uuidMatch = output.match(
+    /Successfully created DB[\s\S]*?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i
+  );
+  if (uuidMatch?.[1]) return uuidMatch[1];
+  return null;
+}
+function parseKvNamespaceId(output) {
+  const jsonMatch = output.match(/"id"\s*:\s*"([0-9a-f]{32})"/);
+  if (jsonMatch?.[1]) return jsonMatch[1];
+  const tomlMatch = output.match(/id\s*=\s*"([0-9a-f]{32})"/);
+  if (tomlMatch?.[1]) return tomlMatch[1];
+  return null;
+}
+function extractErrorMessage(output) {
+  const clean = stripAnsi(output);
+  const errorMatch = clean.match(/\[ERROR]\s*(.+)/);
+  if (errorMatch?.[1]) return errorMatch[1].trim();
+  const lines = clean.split("\n").filter((l) => l.trim());
+  return lines[0] ?? "unknown error";
+}
+function stripAnsi(str) {
+  return str.replace(/\x1b\[[0-9;]*m/g, "");
+}
 async function createResources(options, targetDir) {
   const ids = {
     d1DatabaseId: null,
     kvNamespaceId: null
   };
   ids.d1DatabaseId = await createD1Database(options.projectName, targetDir);
-  ids.kvNamespaceId = await createKvNamespace(targetDir);
+  ids.kvNamespaceId = await createKvNamespace(options.projectName, targetDir);
   if (options.includeR2) {
     await createR2Bucket(options.projectName, targetDir);
   }
@@ -377,7 +406,7 @@ async function createD1Database(projectName, targetDir) {
   p2.log.step(`Creating D1 database "${dbName}"...`);
   const result = tryExec(`${WRANGLER} d1 create ${dbName}`, targetDir);
   if (result.success) {
-    const id = result.output.match(/database_id\s*=\s*"([^"]+)"/)?.[1] ?? null;
+    const id = parseD1DatabaseId(result.output);
     if (id) {
       p2.log.success(`D1 database created: ${pc2.dim(id)}`);
       return id;
@@ -389,11 +418,12 @@ async function createD1Database(projectName, targetDir) {
   }
   return promptForId(`Enter D1 database ID for "${dbName}" (or leave blank to skip)`);
 }
-async function createKvNamespace(targetDir) {
-  p2.log.step('Creating KV namespace "APP_KV"...');
-  const result = tryExec(`${WRANGLER} kv namespace create APP_KV`, targetDir);
+async function createKvNamespace(projectName, targetDir) {
+  const kvName = `${projectName}-kv`;
+  p2.log.step(`Creating KV namespace "${kvName}"...`);
+  const result = tryExec(`${WRANGLER} kv namespace create ${kvName}`, targetDir);
   if (result.success) {
-    const id = result.output.match(/id\s*=\s*"([^"]+)"/)?.[1] ?? null;
+    const id = parseKvNamespaceId(result.output);
     if (id) {
       p2.log.success(`KV namespace created: ${pc2.dim(id)}`);
       return id;
@@ -403,7 +433,7 @@ async function createKvNamespace(targetDir) {
     const errLine = extractErrorMessage(result.output);
     p2.log.warn(`Failed to create KV namespace: ${errLine}`);
   }
-  return promptForId('Enter KV namespace ID for "APP_KV" (or leave blank to skip)');
+  return promptForId(`Enter KV namespace ID for "${kvName}" (or leave blank to skip)`);
 }
 async function createR2Bucket(projectName, targetDir) {
   const bucketName = `${projectName}-uploads`;
@@ -480,18 +510,13 @@ async function runLocalSeed(targetDir) {
     p2.log.warn("Failed to seed database. Run `pnpm db:seed:local` manually.");
   }
 }
-function extractErrorMessage(output) {
-  const errorMatch = output.match(/\[ERROR]\s*(.+)/);
-  if (errorMatch?.[1]) return errorMatch[1].trim();
-  const lines = output.split("\n").filter((l) => l.trim());
-  return lines[0] ?? "unknown error";
-}
 function tryExec(command, cwd) {
   const result = spawnSync(command, {
     cwd,
     encoding: "utf-8",
     shell: true,
-    stdio: ["pipe", "pipe", "pipe"]
+    stdio: ["pipe", "pipe", "pipe"],
+    timeout: EXEC_TIMEOUT_MS
   });
   const stdout = result.stdout ?? "";
   const stderr = result.stderr ?? "";
