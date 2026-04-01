@@ -97,7 +97,7 @@ var CONDITIONAL_PATHS = {
 };
 var RENAME_MAP = {
   _gitignore: ".gitignore",
-  "_env.example": ".env.example",
+  "_dev.vars.example": ".dev.vars.example",
   "_editorconfig": ".editorconfig",
   "_oxfmtrc.json": ".oxfmtrc.json",
   "_oxlintrc.json": ".oxlintrc.json"
@@ -261,7 +261,7 @@ import * as p2 from "@clack/prompts";
 import fs2 from "fs-extra";
 import pc2 from "picocolors";
 async function postScaffold(options, targetDir) {
-  await generateEnvFile(targetDir);
+  await generateDevVars(targetDir);
   if (options.initGit) {
     p2.log.step("Initializing git repository...");
     try {
@@ -291,24 +291,25 @@ async function postScaffold(options, targetDir) {
       `${pc2.bold("Next steps:")}`,
       "",
       `  ${pc2.cyan("1.")} cd ${options.projectName}`,
-      `  ${pc2.cyan("2.")} Update .env and wrangler.jsonc with your secrets`,
-      `  ${pc2.cyan("3.")} pnpm db:migrate:local`,
-      `  ${pc2.cyan("4.")} pnpm db:seed:local`,
-      `  ${pc2.cyan("5.")} pnpm dev`
+      `  ${pc2.cyan("2.")} Add your secrets to .dev.vars`,
+      `  ${pc2.cyan("3.")} Update wrangler.jsonc with your Cloudflare resource IDs`,
+      `  ${pc2.cyan("4.")} pnpm db:migrate:local`,
+      `  ${pc2.cyan("5.")} pnpm db:seed:local`,
+      `  ${pc2.cyan("6.")} pnpm dev`
     ].join("\n"),
     "Your project is ready!"
   );
   p2.outro(pc2.green("Happy building!"));
 }
-async function generateEnvFile(targetDir) {
-  const envExamplePath = path2.join(targetDir, ".env.example");
-  const envPath = path2.join(targetDir, ".env");
-  if (!await fs2.pathExists(envExamplePath)) return;
-  let content = await fs2.readFile(envExamplePath, "utf-8");
+async function generateDevVars(targetDir) {
+  const examplePath = path2.join(targetDir, ".dev.vars.example");
+  const devVarsPath = path2.join(targetDir, ".dev.vars");
+  if (!await fs2.pathExists(examplePath)) return;
+  let content = await fs2.readFile(examplePath, "utf-8");
   const secret = randomBytes(32).toString("base64");
   content = content.replace(/^BETTER_AUTH_SECRET=$/m, `BETTER_AUTH_SECRET=${secret}`);
-  await fs2.writeFile(envPath, content, "utf-8");
-  p2.log.success("Generated .env with BETTER_AUTH_SECRET");
+  await fs2.writeFile(devVarsPath, content, "utf-8");
+  p2.log.success("Generated .dev.vars with BETTER_AUTH_SECRET");
 }
 
 // src/index.ts

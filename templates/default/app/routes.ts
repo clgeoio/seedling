@@ -35,8 +35,8 @@ export default [
 	route("images/*", "routes/images.ts"),
 // {{/if}}
 	...prefix("api", [
-		route("auth/*", "routes/api/better.tsx"),
 		route("auth/error", "routes/api/better-error.tsx"),
+		route("auth/*", "routes/api/better.tsx"),
 		route("theme-switcher", "routes/api/theme-switcher.ts"),
 	]),
 	route("*", "routes/not-found.tsx"),

@@ -7,7 +7,7 @@ import pc from "picocolors";
 import type { ProjectOptions } from "./types.js";
 
 export async function postScaffold(options: ProjectOptions, targetDir: string): Promise<void> {
-	await generateEnvFile(targetDir);
+	await generateDevVars(targetDir);
 
 	if (options.initGit) {
 		p.log.step("Initializing git repository...");
@@ -40,10 +40,11 @@ export async function postScaffold(options: ProjectOptions, targetDir: string): 
 			`${pc.bold("Next steps:")}`,
 			"",
 			`  ${pc.cyan("1.")} cd ${options.projectName}`,
-			`  ${pc.cyan("2.")} Update .env and wrangler.jsonc with your secrets`,
-			`  ${pc.cyan("3.")} pnpm db:migrate:local`,
-			`  ${pc.cyan("4.")} pnpm db:seed:local`,
-			`  ${pc.cyan("5.")} pnpm dev`,
+			`  ${pc.cyan("2.")} Add your secrets to .dev.vars`,
+			`  ${pc.cyan("3.")} Update wrangler.jsonc with your Cloudflare resource IDs`,
+			`  ${pc.cyan("4.")} pnpm db:migrate:local`,
+			`  ${pc.cyan("5.")} pnpm db:seed:local`,
+			`  ${pc.cyan("6.")} pnpm dev`,
 		].join("\n"),
 		"Your project is ready!",
 	);
@@ -51,16 +52,16 @@ export async function postScaffold(options: ProjectOptions, targetDir: string): 
 	p.outro(pc.green("Happy building!"));
 }
 
-async function generateEnvFile(targetDir: string): Promise<void> {
-	const envExamplePath = path.join(targetDir, ".env.example");
-	const envPath = path.join(targetDir, ".env");
+async function generateDevVars(targetDir: string): Promise<void> {
+	const examplePath = path.join(targetDir, ".dev.vars.example");
+	const devVarsPath = path.join(targetDir, ".dev.vars");
 
-	if (!(await fs.pathExists(envExamplePath))) return;
+	if (!(await fs.pathExists(examplePath))) return;
 
-	let content = await fs.readFile(envExamplePath, "utf-8");
+	let content = await fs.readFile(examplePath, "utf-8");
 	const secret = randomBytes(32).toString("base64");
 	content = content.replace(/^BETTER_AUTH_SECRET=$/m, `BETTER_AUTH_SECRET=${secret}`);
 
-	await fs.writeFile(envPath, content, "utf-8");
-	p.log.success("Generated .env with BETTER_AUTH_SECRET");
+	await fs.writeFile(devVarsPath, content, "utf-8");
+	p.log.success("Generated .dev.vars with BETTER_AUTH_SECRET");
 }

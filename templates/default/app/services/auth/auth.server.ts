@@ -78,7 +78,8 @@ export function createAuth(env: Env) {
 				return value ?? null;
 			},
 			set: async (key: string, value: string, ttl?: number) => {
-				await env.APP_KV.put(`auth:${key}`, value, ttl ? { expirationTtl: ttl } : undefined);
+				const kvTtl = ttl ? Math.max(ttl, 60) : undefined;
+				await env.APP_KV.put(`auth:${key}`, value, kvTtl ? { expirationTtl: kvTtl } : undefined);
 			},
 			delete: async (key: string) => {
 				await env.APP_KV.delete(`auth:${key}`);

@@ -24,6 +24,3 @@ export async function action({ request }: Route.ActionArgs) {
 	throw redirect(referer, { headers });
 }
 
-export default function ThemeSwitcherRoute(): null {
-	return null;
-}

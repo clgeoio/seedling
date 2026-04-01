@@ -70,7 +70,7 @@ When run without `--yes`, the CLI walks you through each option interactively.
 
 ## Generated Project Setup
 
-The CLI automatically generates a `.env` file from `.env.example` with a fresh `BETTER_AUTH_SECRET`. After scaffolding:
+The CLI automatically generates a `.dev.vars` file from `.dev.vars.example` with a fresh `BETTER_AUTH_SECRET`. After scaffolding:
 
 ```bash
 cd my-app
@@ -78,12 +78,11 @@ cd my-app
 
 ### Configure Secrets
 
-Edit `.env` with your remaining values:
+Edit `.dev.vars` with your remaining values for local development:
 
 ```env
 BETTER_AUTH_SECRET=...     # Already generated for you
 RESEND_API_KEY=             # From https://resend.com
-BETTER_AUTH_ADMIN_USER_ID=  # Your user ID after first sign-up
 
 # If GitHub social auth is enabled:
 GITHUB_CLIENT_ID=
@@ -92,6 +91,14 @@ GITHUB_CLIENT_SECRET=
 # If Google social auth is enabled:
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+```
+
+For production, use `wrangler secret put` to set each secret:
+
+```bash
+wrangler secret put BETTER_AUTH_SECRET
+wrangler secret put RESEND_API_KEY
+# etc.
 ```
 
 ### Configure Wrangler
@@ -182,7 +189,13 @@ my-app/
 wrangler d1 create my-app-db
 wrangler kv namespace create APP_KV
 
-# Update wrangler.jsonc with resource IDs, then:
+# Update wrangler.jsonc with resource IDs
+
+# Set production secrets
+wrangler secret put BETTER_AUTH_SECRET
+wrangler secret put RESEND_API_KEY
+
+# Deploy
 pnpm db:migrate:remote
 pnpm deploy
 ```

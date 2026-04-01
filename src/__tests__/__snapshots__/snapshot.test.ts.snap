@@ -2,7 +2,7 @@
 
 exports[`scaffold file tree snapshots > all features enabled 1`] = `
 [
-  ".env.example",
+  ".dev.vars.example",
   ".gitignore",
   ".oxfmtrc.json",
   ".oxlintrc.json",
@@ -98,7 +98,7 @@ exports[`scaffold file tree snapshots > all features enabled 1`] = `
 
 exports[`scaffold file tree snapshots > minimal - no optional features 1`] = `
 [
-  ".env.example",
+  ".dev.vars.example",
   ".gitignore",
   ".oxfmtrc.json",
   ".oxlintrc.json",
@@ -180,7 +180,7 @@ exports[`scaffold file tree snapshots > minimal - no optional features 1`] = `
 
 exports[`scaffold file tree snapshots > mixed - todos + cron, no admin/R2/queues 1`] = `
 [
-  ".env.example",
+  ".dev.vars.example",
   ".gitignore",
   ".oxfmtrc.json",
   ".oxlintrc.json",

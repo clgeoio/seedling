@@ -21,7 +21,7 @@
 		"db:seed:local": "tsx drizzle/seed/seed.ts",
 		"db:seed:remote": "wrangler d1 execute DB --remote --file=drizzle/seed/seed.sql",
 		"db:studio": "drizzle-kit studio",
-		"db:reset:local": "wrangler d1 execute DB --local --command='SELECT name FROM sqlite_master WHERE type=\"table\"' && wrangler d1 migrations apply DB --local",
+		"db:reset:local": "rm -rf .wrangler/state && wrangler d1 migrations apply DB --local",
 		"db:delete:local": "rm -rf .wrangler/state",
 		"auth:secret": "openssl rand -base64 32",
 		"auth:generate": "npx @better-auth/cli generate --config app/services/auth/auth.server.ts --output drizzle/schema/auth.ts"
@@ -36,7 +36,6 @@
 		"@radix-ui/react-separator": "^1.1.0",
 		"@radix-ui/react-slot": "^1.1.0",
 		"@radix-ui/react-tabs": "^1.1.0",
-		"@react-router/cloudflare": "^7.5.0",
 		"better-auth": "^1.2.0",
 		"class-variance-authority": "^0.7.0",
 		"clsx": "^2.1.0",

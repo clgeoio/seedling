@@ -17,7 +17,7 @@ const CONDITIONAL_PATHS: Record<string, string[]> = {
 
 const RENAME_MAP: Record<string, string> = {
 	_gitignore: ".gitignore",
-	"_env.example": ".env.example",
+	"_dev.vars.example": ".dev.vars.example",
 	"_editorconfig": ".editorconfig",
 	"_oxfmtrc.json": ".oxfmtrc.json",
 	"_oxlintrc.json": ".oxlintrc.json",

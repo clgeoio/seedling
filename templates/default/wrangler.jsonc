@@ -56,19 +56,13 @@
 	},
 
 // {{/if}}
+	"observability": {
+		"enabled": true
+	},
+
 	"vars": {
 		"APP_URL": "http://localhost:5173",
 		"APP_ENV": "development",
-		"BETTER_AUTH_SECRET": "YOUR_BETTER_AUTH_SECRET",
-// {{#if hasGithub}}
-		"GITHUB_CLIENT_ID": "YOUR_GITHUB_CLIENT_ID",
-		"GITHUB_CLIENT_SECRET": "YOUR_GITHUB_CLIENT_SECRET",
-// {{/if}}
-// {{#if hasGoogle}}
-		"GOOGLE_CLIENT_ID": "YOUR_GOOGLE_CLIENT_ID",
-		"GOOGLE_CLIENT_SECRET": "YOUR_GOOGLE_CLIENT_SECRET",
-// {{/if}}
-		"RESEND_API_KEY": "YOUR_RESEND_API_KEY",
 		"BETTER_AUTH_ADMIN_USER_ID": ""
 	}
 }
