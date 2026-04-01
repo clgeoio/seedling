@@ -3,13 +3,16 @@ import { cleanupVerifications } from "./cleanup-verifications";
 
 type CronHandler = (env: Env) => Promise<void>;
 
-/** Handlers run in order when `event.cron` matches {@link CRON_TRIGGER}. */
-export const handlers: CronHandler[] = [cleanupSessions, cleanupVerifications];
-
-/** Must match a cron entry in `wrangler.jsonc` / `wrangler.toml`. */
-export const CRON_TRIGGER = "0 * * * *";
+const cronJobs: Record<string, CronHandler[]> = {
+	"0 */6 * * *": [cleanupSessions],
+	"0 0 * * *": [cleanupVerifications],
+};
 
 export async function handleScheduled(controller: ScheduledController, env: Env): Promise<void> {
-	if (controller.cron !== CRON_TRIGGER) return;
+	const handlers = cronJobs[controller.cron];
+	if (!handlers) {
+		console.warn(`No handler registered for cron: ${controller.cron}`);
+		return;
+	}
 	for (const handler of handlers) await handler(env);
 }

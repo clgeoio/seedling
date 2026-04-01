@@ -42,13 +42,13 @@
 	"queues": {
 		"producers": [
 			{
-				"binding": "EMAIL_QUEUE",
-				"queue": "{{projectName}}-email"
+				"binding": "TASK_QUEUE",
+				"queue": "{{projectName}}-tasks"
 			}
 		],
 		"consumers": [
 			{
-				"queue": "{{projectName}}-email",
+				"queue": "{{projectName}}-tasks",
 				"max_batch_size": 10,
 				"max_retries": 3
 			}

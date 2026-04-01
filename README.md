@@ -101,7 +101,7 @@ Edit `wrangler.jsonc` with your Cloudflare resource IDs:
 - **D1 database ID** -- create via `wrangler d1 create my-app-db`
 - **KV namespace ID** -- create via `wrangler kv namespace create APP_KV`
 - **R2 bucket name** (if enabled) -- create via `wrangler r2 bucket create my-app-uploads`
-- **Queue name** (if enabled) -- create via `wrangler queues create my-app-email`
+- **Queue name** (if enabled) -- create via `wrangler queues create my-app-tasks`
 
 ### Run Locally
 

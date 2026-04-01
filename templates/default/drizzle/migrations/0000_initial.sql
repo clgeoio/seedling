@@ -1,4 +1,4 @@
--- Better Auth (SQLite / D1) — users, accounts, verifications
+-- Better Auth (SQLite / D1) — users, sessions, accounts, verifications
 
 CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
@@ -18,6 +18,21 @@ CREATE TABLE `users` (
 
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);
 CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);
+
+CREATE TABLE `sessions` (
+	`id` text PRIMARY KEY NOT NULL,
+	`expiresAt` integer NOT NULL,
+	`token` text NOT NULL,
+	`ipAddress` text,
+	`userAgent` text,
+	`userId` text NOT NULL,
+	`createdAt` integer NOT NULL,
+	`updatedAt` integer NOT NULL,
+	FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON UPDATE no action ON DELETE cascade
+);
+
+CREATE UNIQUE INDEX `sessions_token_unique` ON `sessions` (`token`);
+CREATE INDEX `sessions_userId_idx` ON `sessions` (`userId`);
 
 CREATE TABLE `accounts` (
 	`id` text PRIMARY KEY NOT NULL,

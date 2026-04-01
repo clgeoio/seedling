@@ -35,6 +35,19 @@ export const accounts = sqliteTable("accounts", {
 	updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
 });
 
+export const sessions = sqliteTable("sessions", {
+	id: text("id").primaryKey(),
+	expiresAt: integer("expiresAt", { mode: "timestamp_ms" }).notNull(),
+	token: text("token").notNull().unique(),
+	ipAddress: text("ipAddress"),
+	userAgent: text("userAgent"),
+	userId: text("userId")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+	updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+});
+
 export const verifications = sqliteTable("verifications", {
 	id: text("id").primaryKey(),
 	identifier: text("identifier").notNull(),
@@ -46,6 +59,14 @@ export const verifications = sqliteTable("verifications", {
 
 export const usersRelations = relations(users, ({ many }) => ({
 	accounts: many(accounts),
+	sessions: many(sessions),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+	user: one(users, {
+		fields: [sessions.userId],
+		references: [users.id],
+	}),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({

@@ -2,12 +2,16 @@ const THEME_COOKIE_NAME = "{{projectName}}_theme";
 
 export type Theme = "light" | "dark" | "system";
 
-export async function getTheme(request: Request): Promise<Theme> {
+const validThemes = new Set<Theme>(["light", "dark", "system"]);
+
+export function getTheme(request: Request): Theme {
 	const cookie = request.headers.get("Cookie");
 	if (!cookie) return "system";
 
 	const match = cookie.match(new RegExp(`${THEME_COOKIE_NAME}=([^;]+)`));
-	return (match?.[1] as Theme) ?? "system";
+	const value = match?.[1];
+	if (value && validThemes.has(value as Theme)) return value as Theme;
+	return "system";
 }
 
 export function setThemeCookie(theme: Theme): string {

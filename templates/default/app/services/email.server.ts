@@ -8,7 +8,7 @@ interface EmailOptions {
 
 export async function sendEmail(env: Env, options: EmailOptions): Promise<void> {
 // {{#if includeQueues}}
-	await env.EMAIL_QUEUE.send({
+	await env.TASK_QUEUE.send({
 		type: "email",
 		to: options.to,
 		subject: options.subject,
@@ -18,7 +18,7 @@ export async function sendEmail(env: Env, options: EmailOptions): Promise<void> 
 // {{#unless includeQueues}}
 	const resend = new Resend(env.RESEND_API_KEY);
 	await resend.emails.send({
-		from: "noreply@${env.APP_URL.replace('https://', '').replace('http://', '')}",
+		from: `noreply@${new URL(env.APP_URL).hostname}`,
 		to: options.to,
 		subject: options.subject,
 		html: options.html,

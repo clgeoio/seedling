@@ -10,8 +10,11 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { useSession } from "~/services/auth/client";
 
+type SessionUser = { role?: string } & Record<string, unknown>;
+
 export default function AppLayout() {
 	const { data: session } = useSession();
+	const userRole = (session?.user as SessionUser | undefined)?.role;
 
 	return (
 		<div className="flex min-h-screen flex-col bg-background">
@@ -39,6 +42,15 @@ export default function AppLayout() {
 									<DropdownMenuItem key="todos" asChild>
 										<Link to="/todos">Todos</Link>
 									</DropdownMenuItem>,
+// {{/if}}
+// {{#if includeAdmin}}
+									...(userRole === "admin"
+										? [
+												<DropdownMenuItem key="admin" asChild>
+													<Link to="/admin">Admin</Link>
+												</DropdownMenuItem>,
+											]
+										: []),
 // {{/if}}
 								]}
 							</DropdownMenuContent>
@@ -75,6 +87,26 @@ export default function AppLayout() {
 								>
 									Todos
 								</NavLink>,
+// {{/if}}
+// {{#if includeAdmin}}
+								...(userRole === "admin"
+									? [
+											<NavLink
+												key="admin"
+												to="/admin"
+												className={({ isActive }) =>
+													[
+														"rounded-md px-3 py-2 text-sm font-medium transition-colors",
+														isActive
+															? "bg-muted text-foreground"
+															: "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+													].join(" ")
+												}
+											>
+												Admin
+											</NavLink>,
+										]
+									: []),
 // {{/if}}
 							]}
 						</nav>

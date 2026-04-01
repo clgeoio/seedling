@@ -5,7 +5,7 @@ interface Env {
 	R2: R2Bucket;
 // {{/if}}
 // {{#if includeQueues}}
-	EMAIL_QUEUE: Queue;
+	TASK_QUEUE: Queue;
 // {{/if}}
 	APP_URL: string;
 	APP_ENV: string;

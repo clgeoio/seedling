@@ -37,7 +37,6 @@
 		"@radix-ui/react-slot": "^1.1.0",
 		"@radix-ui/react-tabs": "^1.1.0",
 		"@react-router/cloudflare": "^7.5.0",
-		"@react-router/node": "^7.5.0",
 		"better-auth": "^1.2.0",
 		"class-variance-authority": "^0.7.0",
 		"clsx": "^2.1.0",
