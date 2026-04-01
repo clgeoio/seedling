@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import path from "node:path";
 import * as p from "@clack/prompts";
 import fs from "fs-extra";
@@ -12,6 +12,13 @@ interface ResourceIds {
 	kvNamespaceId: string | null;
 }
 
+/**
+ * Provisions Cloudflare resources (D1, KV, R2, Queues) via wrangler CLI,
+ * patches `wrangler.jsonc` with the created resource IDs, and runs
+ * local database migrations and seeding.
+ *
+ * @returns `true` if all resources were created and the project is ready to run
+ */
 export async function setupCloudflare(options: ProjectOptions, targetDir: string): Promise<boolean> {
 	p.log.step(pc.bold("Setting up Cloudflare resources..."));
 
@@ -35,7 +42,7 @@ async function ensureAuth(targetDir: string): Promise<boolean> {
 	const whoami = tryExec(`${WRANGLER} whoami`, targetDir);
 
 	if (whoami.success) {
-		const account = parseAccountName(whoami.stdout);
+		const account = parseAccountInfo(whoami.output);
 		const displayAccount = account ?? "unknown account";
 
 		const useAccount = await p.confirm({
@@ -85,19 +92,19 @@ function runLogin(targetDir: string): boolean {
 		return false;
 	}
 
-	const account = parseAccountName(verify.stdout);
+	const account = parseAccountInfo(verify.output);
 	if (account) {
 		p.log.success(`Authenticated as ${pc.cyan(account)}`);
 	}
 	return true;
 }
 
-function parseAccountName(whoamiOutput: string): string | null {
-	const match = whoamiOutput.match(/──\s+(.+?)\s+──/);
-	if (match?.[1]) return match[1].trim();
+function parseAccountInfo(whoamiOutput: string): string | null {
+	const emailMatch = whoamiOutput.match(/associated with the email\s+(\S+)/i);
+	if (emailMatch?.[1]) return emailMatch[1].replace(/\.?$/, "");
 
-	const accountMatch = whoamiOutput.match(/Account Name:\s*(.+)/i);
-	if (accountMatch?.[1]) return accountMatch[1].trim();
+	const tableMatch = whoamiOutput.match(/│\s*([^│]+?)\s*│\s*[a-f0-9]{32}\s*│/);
+	if (tableMatch?.[1]) return tableMatch[1].trim();
 
 	return null;
 }
@@ -128,14 +135,15 @@ async function createD1Database(projectName: string, targetDir: string): Promise
 
 	const result = tryExec(`${WRANGLER} d1 create ${dbName}`, targetDir);
 	if (result.success) {
-		const id = result.stdout.match(/database_id\s*=\s*"([^"]+)"/)?.[1] ?? null;
+		const id = result.output.match(/database_id\s*=\s*"([^"]+)"/)?.[1] ?? null;
 		if (id) {
 			p.log.success(`D1 database created: ${pc.dim(id)}`);
 			return id;
 		}
 		p.log.warn("D1 database created but could not parse database ID from output.");
 	} else {
-		p.log.warn(`Failed to create D1 database: ${result.stderr.split("\n")[0]}`);
+		const errLine = extractErrorMessage(result.output);
+		p.log.warn(`Failed to create D1 database: ${errLine}`);
 	}
 
 	return promptForId(`Enter D1 database ID for "${dbName}" (or leave blank to skip)`);
@@ -146,14 +154,15 @@ async function createKvNamespace(targetDir: string): Promise<string | null> {
 
 	const result = tryExec(`${WRANGLER} kv namespace create APP_KV`, targetDir);
 	if (result.success) {
-		const id = result.stdout.match(/id\s*=\s*"([^"]+)"/)?.[1] ?? null;
+		const id = result.output.match(/id\s*=\s*"([^"]+)"/)?.[1] ?? null;
 		if (id) {
 			p.log.success(`KV namespace created: ${pc.dim(id)}`);
 			return id;
 		}
 		p.log.warn("KV namespace created but could not parse namespace ID from output.");
 	} else {
-		p.log.warn(`Failed to create KV namespace: ${result.stderr.split("\n")[0]}`);
+		const errLine = extractErrorMessage(result.output);
+		p.log.warn(`Failed to create KV namespace: ${errLine}`);
 	}
 
 	return promptForId("Enter KV namespace ID for \"APP_KV\" (or leave blank to skip)");
@@ -167,7 +176,8 @@ async function createR2Bucket(projectName: string, targetDir: string): Promise<v
 	if (result.success) {
 		p.log.success(`R2 bucket "${bucketName}" created`);
 	} else {
-		p.log.warn(`Failed to create R2 bucket: ${result.stderr.split("\n")[0]}`);
+		const errLine = extractErrorMessage(result.output);
+		p.log.warn(`Failed to create R2 bucket: ${errLine}`);
 	}
 }
 
@@ -179,7 +189,8 @@ async function createQueue(projectName: string, targetDir: string): Promise<void
 	if (result.success) {
 		p.log.success(`Queue "${queueName}" created`);
 	} else {
-		p.log.warn(`Failed to create Queue: ${result.stderr.split("\n")[0]}`);
+		const errLine = extractErrorMessage(result.output);
+		p.log.warn(`Failed to create Queue: ${errLine}`);
 	}
 }
 
@@ -238,7 +249,7 @@ async function runLocalMigrations(targetDir: string): Promise<void> {
 async function runLocalSeed(targetDir: string): Promise<void> {
 	p.log.step("Seeding local database...");
 	try {
-		execSync("pnpm db:seed:local", {
+		execSync(`${WRANGLER} d1 execute DB --local --file=drizzle/seed/seed.sql`, {
 			cwd: targetDir,
 			stdio: "inherit",
 		});
@@ -248,20 +259,36 @@ async function runLocalSeed(targetDir: string): Promise<void> {
 	}
 }
 
-function tryExec(command: string, cwd: string): { success: boolean; stdout: string; stderr: string } {
-	try {
-		const stdout = execSync(command, {
-			cwd,
-			encoding: "utf-8",
-			stdio: ["pipe", "pipe", "pipe"],
-		});
-		return { success: true, stdout, stderr: "" };
-	} catch (err: unknown) {
-		const execErr = err as { stdout?: string; stderr?: string };
-		return {
-			success: false,
-			stdout: execErr.stdout ?? "",
-			stderr: execErr.stderr ?? "",
-		};
-	}
+function extractErrorMessage(output: string): string {
+	const errorMatch = output.match(/\[ERROR]\s*(.+)/);
+	if (errorMatch?.[1]) return errorMatch[1].trim();
+
+	const lines = output.split("\n").filter((l) => l.trim());
+	return lines[0] ?? "unknown error";
+}
+
+interface ExecResult {
+	success: boolean;
+	stdout: string;
+	stderr: string;
+	output: string;
+}
+
+function tryExec(command: string, cwd: string): ExecResult {
+	const result = spawnSync(command, {
+		cwd,
+		encoding: "utf-8",
+		shell: true,
+		stdio: ["pipe", "pipe", "pipe"],
+	});
+
+	const stdout = result.stdout ?? "";
+	const stderr = result.stderr ?? "";
+
+	return {
+		success: result.status === 0,
+		stdout,
+		stderr,
+		output: `${stdout}\n${stderr}`,
+	};
 }

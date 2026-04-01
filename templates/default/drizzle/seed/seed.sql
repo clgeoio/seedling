@@ -1,7 +1,7 @@
 -- Remote D1 seed: admin@example.com / admin123 (Better Auth scrypt format)
 -- Regenerate hash if you change the password: `node --input-type=module -e "import('better-auth/crypto').then(m => m.hashPassword('YOUR_PASS')).then(console.log)"`
 
-INSERT INTO "users" (
+INSERT OR IGNORE INTO "users" (
 	"id",
 	"name",
 	"email",
@@ -31,7 +31,7 @@ INSERT INTO "users" (
 	(strftime('%s', 'now') * 1000)
 );
 
-INSERT INTO "accounts" (
+INSERT OR IGNORE INTO "accounts" (
 	"id",
 	"accountId",
 	"providerId",

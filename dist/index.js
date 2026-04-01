@@ -9,23 +9,33 @@ import pc from "picocolors";
 function toTitleCase(str) {
   return str.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
-async function gatherOptions(projectNameArg, skipPrompts) {
+function parseSocialProviders(input) {
+  const valid = /* @__PURE__ */ new Set(["github", "google"]);
+  return input.filter((provider) => valid.has(provider));
+}
+function unwrap(value) {
+  if (typeof value === "symbol") {
+    throw new Error("Unexpected prompt cancellation");
+  }
+  return value;
+}
+async function gatherOptions(projectNameArg, flags = {}) {
   p.intro(pc.bgCyan(pc.black(" seedling ")));
-  if (skipPrompts) {
+  if (flags.yes) {
     const projectName = projectNameArg ?? "my-app";
     p.log.info(`Using defaults for project "${projectName}"`);
     return {
       projectName,
       displayName: toTitleCase(projectName),
-      socialProviders: ["github", "google"],
-      includeAdmin: true,
-      includeR2: false,
-      includeTodos: true,
-      includeCron: false,
-      includeQueues: false,
-      installDeps: true,
-      initGit: true,
-      setupCloudflare: false
+      socialProviders: flags.social ? parseSocialProviders(flags.social) : ["github", "google"],
+      includeAdmin: flags.admin ?? true,
+      includeR2: flags.r2 ?? false,
+      includeTodos: flags.todos ?? true,
+      includeCron: flags.cron ?? false,
+      includeQueues: flags.queues ?? false,
+      installDeps: flags.install ?? true,
+      initGit: flags.git ?? true,
+      setupCloudflare: flags.cloudflare ?? false
     };
   }
   const answers = await p.group(
@@ -40,11 +50,14 @@ async function gatherOptions(projectNameArg, skipPrompts) {
             return "Must be lowercase alphanumeric with hyphens";
         }
       }),
-      displayName: ({ results }) => p.text({
-        message: "App display name",
-        placeholder: toTitleCase(results.projectName),
-        defaultValue: toTitleCase(results.projectName)
-      }),
+      displayName: ({ results }) => {
+        const name = toTitleCase(String(results.projectName ?? "my-app"));
+        return p.text({
+          message: "App display name",
+          placeholder: name,
+          defaultValue: name
+        });
+      },
       socialProviders: () => p.multiselect({
         message: "Social auth providers",
         options: [
@@ -73,17 +86,19 @@ async function gatherOptions(projectNameArg, skipPrompts) {
     }
   );
   return {
-    projectName: answers.projectName,
-    displayName: answers.displayName,
-    socialProviders: answers.socialProviders ?? [],
-    includeAdmin: answers.includeAdmin,
-    includeR2: answers.includeR2,
-    includeTodos: answers.includeTodos,
-    includeCron: answers.includeCron,
-    includeQueues: answers.includeQueues,
-    installDeps: answers.installDeps,
-    initGit: answers.initGit,
-    setupCloudflare: answers.setupCloudflare
+    projectName: String(unwrap(answers.projectName)),
+    displayName: String(unwrap(answers.displayName)),
+    socialProviders: parseSocialProviders(
+      unwrap(answers.socialProviders) ?? []
+    ),
+    includeAdmin: Boolean(unwrap(answers.includeAdmin)),
+    includeR2: Boolean(unwrap(answers.includeR2)),
+    includeTodos: Boolean(unwrap(answers.includeTodos)),
+    includeCron: Boolean(unwrap(answers.includeCron)),
+    includeQueues: Boolean(unwrap(answers.includeQueues)),
+    installDeps: Boolean(unwrap(answers.installDeps)),
+    initGit: Boolean(unwrap(answers.initGit)),
+    setupCloudflare: Boolean(unwrap(answers.setupCloudflare))
   };
 }
 
@@ -104,7 +119,6 @@ var CONDITIONAL_PATHS = {
 var RENAME_MAP = {
   _gitignore: ".gitignore",
   "_dev.vars.example": ".dev.vars.example",
-  "_editorconfig": ".editorconfig",
   "_oxfmtrc.json": ".oxfmtrc.json",
   "_oxlintrc.json": ".oxlintrc.json"
 };
@@ -268,7 +282,7 @@ import fs3 from "fs-extra";
 import pc3 from "picocolors";
 
 // src/cloudflare-setup.ts
-import { execSync } from "child_process";
+import { execSync, spawnSync } from "child_process";
 import path2 from "path";
 import * as p2 from "@clack/prompts";
 import fs2 from "fs-extra";
@@ -291,7 +305,7 @@ async function setupCloudflare(options, targetDir) {
 async function ensureAuth(targetDir) {
   const whoami = tryExec(`${WRANGLER} whoami`, targetDir);
   if (whoami.success) {
-    const account = parseAccountName(whoami.stdout);
+    const account = parseAccountInfo(whoami.output);
     const displayAccount = account ?? "unknown account";
     const useAccount = await p2.confirm({
       message: `Logged in as ${pc2.cyan(displayAccount)}. Use this account?`,
@@ -330,17 +344,17 @@ function runLogin(targetDir) {
     p2.log.error("Authentication could not be verified after login.");
     return false;
   }
-  const account = parseAccountName(verify.stdout);
+  const account = parseAccountInfo(verify.output);
   if (account) {
     p2.log.success(`Authenticated as ${pc2.cyan(account)}`);
   }
   return true;
 }
-function parseAccountName(whoamiOutput) {
-  const match = whoamiOutput.match(/──\s+(.+?)\s+──/);
-  if (match?.[1]) return match[1].trim();
-  const accountMatch = whoamiOutput.match(/Account Name:\s*(.+)/i);
-  if (accountMatch?.[1]) return accountMatch[1].trim();
+function parseAccountInfo(whoamiOutput) {
+  const emailMatch = whoamiOutput.match(/associated with the email\s+(\S+)/i);
+  if (emailMatch?.[1]) return emailMatch[1].replace(/\.?$/, "");
+  const tableMatch = whoamiOutput.match(/│\s*([^│]+?)\s*│\s*[a-f0-9]{32}\s*│/);
+  if (tableMatch?.[1]) return tableMatch[1].trim();
   return null;
 }
 async function createResources(options, targetDir) {
@@ -363,14 +377,15 @@ async function createD1Database(projectName, targetDir) {
   p2.log.step(`Creating D1 database "${dbName}"...`);
   const result = tryExec(`${WRANGLER} d1 create ${dbName}`, targetDir);
   if (result.success) {
-    const id = result.stdout.match(/database_id\s*=\s*"([^"]+)"/)?.[1] ?? null;
+    const id = result.output.match(/database_id\s*=\s*"([^"]+)"/)?.[1] ?? null;
     if (id) {
       p2.log.success(`D1 database created: ${pc2.dim(id)}`);
       return id;
     }
     p2.log.warn("D1 database created but could not parse database ID from output.");
   } else {
-    p2.log.warn(`Failed to create D1 database: ${result.stderr.split("\n")[0]}`);
+    const errLine = extractErrorMessage(result.output);
+    p2.log.warn(`Failed to create D1 database: ${errLine}`);
   }
   return promptForId(`Enter D1 database ID for "${dbName}" (or leave blank to skip)`);
 }
@@ -378,14 +393,15 @@ async function createKvNamespace(targetDir) {
   p2.log.step('Creating KV namespace "APP_KV"...');
   const result = tryExec(`${WRANGLER} kv namespace create APP_KV`, targetDir);
   if (result.success) {
-    const id = result.stdout.match(/id\s*=\s*"([^"]+)"/)?.[1] ?? null;
+    const id = result.output.match(/id\s*=\s*"([^"]+)"/)?.[1] ?? null;
     if (id) {
       p2.log.success(`KV namespace created: ${pc2.dim(id)}`);
       return id;
     }
     p2.log.warn("KV namespace created but could not parse namespace ID from output.");
   } else {
-    p2.log.warn(`Failed to create KV namespace: ${result.stderr.split("\n")[0]}`);
+    const errLine = extractErrorMessage(result.output);
+    p2.log.warn(`Failed to create KV namespace: ${errLine}`);
   }
   return promptForId('Enter KV namespace ID for "APP_KV" (or leave blank to skip)');
 }
@@ -396,7 +412,8 @@ async function createR2Bucket(projectName, targetDir) {
   if (result.success) {
     p2.log.success(`R2 bucket "${bucketName}" created`);
   } else {
-    p2.log.warn(`Failed to create R2 bucket: ${result.stderr.split("\n")[0]}`);
+    const errLine = extractErrorMessage(result.output);
+    p2.log.warn(`Failed to create R2 bucket: ${errLine}`);
   }
 }
 async function createQueue(projectName, targetDir) {
@@ -406,7 +423,8 @@ async function createQueue(projectName, targetDir) {
   if (result.success) {
     p2.log.success(`Queue "${queueName}" created`);
   } else {
-    p2.log.warn(`Failed to create Queue: ${result.stderr.split("\n")[0]}`);
+    const errLine = extractErrorMessage(result.output);
+    p2.log.warn(`Failed to create Queue: ${errLine}`);
   }
 }
 async function promptForId(message) {
@@ -453,7 +471,7 @@ async function runLocalMigrations(targetDir) {
 async function runLocalSeed(targetDir) {
   p2.log.step("Seeding local database...");
   try {
-    execSync("pnpm db:seed:local", {
+    execSync(`${WRANGLER} d1 execute DB --local --file=drizzle/seed/seed.sql`, {
       cwd: targetDir,
       stdio: "inherit"
     });
@@ -462,22 +480,28 @@ async function runLocalSeed(targetDir) {
     p2.log.warn("Failed to seed database. Run `pnpm db:seed:local` manually.");
   }
 }
+function extractErrorMessage(output) {
+  const errorMatch = output.match(/\[ERROR]\s*(.+)/);
+  if (errorMatch?.[1]) return errorMatch[1].trim();
+  const lines = output.split("\n").filter((l) => l.trim());
+  return lines[0] ?? "unknown error";
+}
 function tryExec(command, cwd) {
-  try {
-    const stdout = execSync(command, {
-      cwd,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"]
-    });
-    return { success: true, stdout, stderr: "" };
-  } catch (err) {
-    const execErr = err;
-    return {
-      success: false,
-      stdout: execErr.stdout ?? "",
-      stderr: execErr.stderr ?? ""
-    };
-  }
+  const result = spawnSync(command, {
+    cwd,
+    encoding: "utf-8",
+    shell: true,
+    stdio: ["pipe", "pipe", "pipe"]
+  });
+  const stdout = result.stdout ?? "";
+  const stderr = result.stderr ?? "";
+  return {
+    success: result.status === 0,
+    stdout,
+    stderr,
+    output: `${stdout}
+${stderr}`
+  };
 }
 
 // src/post-scaffold.ts
@@ -549,8 +573,8 @@ async function generateDevVars(targetDir) {
 // src/index.ts
 var program = new Command();
 program.name("seedling").description("Scaffold a full-stack Cloudflare Workers starter kit").version("0.1.0");
-program.command("create").description("Create a new project").argument("[project-name]", "Name of the project directory").option("-y, --yes", "Skip prompts and use defaults").action(async (projectName, cmdOptions) => {
-  const options = await gatherOptions(projectName, cmdOptions?.yes);
+program.command("create").description("Create a new project").argument("[project-name]", "Name of the project directory").option("-y, --yes", "Skip prompts and use defaults").option("--admin", "Include admin panel (default with --yes)").option("--no-admin", "Exclude admin panel").option("--todos", "Include example todos (default with --yes)").option("--no-todos", "Exclude example todos").option("--r2", "Include R2 image storage").option("--cron", "Include cron trigger handlers").option("--queues", "Include queue handlers").option("--social <providers...>", "Social auth providers: github, google").option("--no-git", "Skip git repository initialization").option("--no-install", "Skip pnpm install").option("--no-cloudflare", "Skip Cloudflare resource setup").action(async (projectName, flags) => {
+  const options = await gatherOptions(projectName, flags);
   const targetDir = await scaffold(options);
   await postScaffold(options, targetDir);
 });

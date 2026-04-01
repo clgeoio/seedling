@@ -1,32 +1,51 @@
 import * as p from "@clack/prompts";
 import pc from "picocolors";
-import type { ProjectOptions } from "./types.js";
+import type { CliFlags, ProjectOptions } from "./types.js";
 
 function toTitleCase(str: string): string {
 	return str.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function parseSocialProviders(input: string[]): Array<"github" | "google"> {
+	const valid = new Set<string>(["github", "google"]);
+	return input.filter((provider): provider is "github" | "google" => valid.has(provider));
+}
+
+function unwrap<T>(value: T | symbol): T {
+	if (typeof value === "symbol") {
+		throw new Error("Unexpected prompt cancellation");
+	}
+	return value;
+}
+
+/**
+ * Gathers all project options either from CLI flags (when `--yes` is set)
+ * or by walking the user through interactive prompts.
+ *
+ * With `--yes`, defaults are applied and individual flags override them.
+ * Without `--yes`, all prompts are shown interactively.
+ */
 export async function gatherOptions(
 	projectNameArg?: string,
-	skipPrompts?: boolean,
+	flags: CliFlags = {},
 ): Promise<ProjectOptions> {
 	p.intro(pc.bgCyan(pc.black(" seedling ")));
 
-	if (skipPrompts) {
+	if (flags.yes) {
 		const projectName = projectNameArg ?? "my-app";
 		p.log.info(`Using defaults for project "${projectName}"`);
 		return {
 			projectName,
 			displayName: toTitleCase(projectName),
-			socialProviders: ["github", "google"],
-			includeAdmin: true,
-			includeR2: false,
-			includeTodos: true,
-			includeCron: false,
-			includeQueues: false,
-			installDeps: true,
-			initGit: true,
-			setupCloudflare: false,
+			socialProviders: flags.social ? parseSocialProviders(flags.social) : ["github", "google"],
+			includeAdmin: flags.admin ?? true,
+			includeR2: flags.r2 ?? false,
+			includeTodos: flags.todos ?? true,
+			includeCron: flags.cron ?? false,
+			includeQueues: flags.queues ?? false,
+			installDeps: flags.install ?? true,
+			initGit: flags.git ?? true,
+			setupCloudflare: flags.cloudflare ?? false,
 		};
 	}
 
@@ -43,12 +62,14 @@ export async function gatherOptions(
 							return "Must be lowercase alphanumeric with hyphens";
 					},
 				}),
-			displayName: ({ results }) =>
-				p.text({
+			displayName: ({ results }) => {
+				const name = toTitleCase(String(results.projectName ?? "my-app"));
+				return p.text({
 					message: "App display name",
-					placeholder: toTitleCase(results.projectName as string),
-					defaultValue: toTitleCase(results.projectName as string),
-				}),
+					placeholder: name,
+					defaultValue: name,
+				});
+			},
 			socialProviders: () =>
 				p.multiselect({
 					message: "Social auth providers",
@@ -65,18 +86,18 @@ export async function gatherOptions(
 				p.confirm({ message: "Include cron trigger handlers?", initialValue: false }),
 			includeQueues: () =>
 				p.confirm({ message: "Include queue handlers?", initialValue: false }),
-		installDeps: () =>
-			p.confirm({ message: "Install dependencies with pnpm?", initialValue: true }),
-		initGit: () =>
-			p.confirm({ message: "Initialize git repository?", initialValue: true }),
-		setupCloudflare: ({ results }) =>
-			results.installDeps
-				? p.confirm({
-						message: "Set up Cloudflare resources? (requires wrangler login)",
-						initialValue: true,
-					})
-				: Promise.resolve(false),
-	},
+			installDeps: () =>
+				p.confirm({ message: "Install dependencies with pnpm?", initialValue: true }),
+			initGit: () =>
+				p.confirm({ message: "Initialize git repository?", initialValue: true }),
+			setupCloudflare: ({ results }) =>
+				results.installDeps
+					? p.confirm({
+							message: "Set up Cloudflare resources? (requires wrangler login)",
+							initialValue: true,
+						})
+					: Promise.resolve(false),
+		},
 		{
 			onCancel: () => {
 				p.cancel("Operation cancelled.");
@@ -86,16 +107,18 @@ export async function gatherOptions(
 	);
 
 	return {
-		projectName: answers.projectName as string,
-		displayName: answers.displayName as string,
-		socialProviders: (answers.socialProviders ?? []) as Array<"github" | "google">,
-		includeAdmin: answers.includeAdmin as boolean,
-		includeR2: answers.includeR2 as boolean,
-		includeTodos: answers.includeTodos as boolean,
-		includeCron: answers.includeCron as boolean,
-		includeQueues: answers.includeQueues as boolean,
-		installDeps: answers.installDeps as boolean,
-		initGit: answers.initGit as boolean,
-		setupCloudflare: answers.setupCloudflare as boolean,
+		projectName: String(unwrap(answers.projectName)),
+		displayName: String(unwrap(answers.displayName)),
+		socialProviders: parseSocialProviders(
+			(unwrap(answers.socialProviders) as string[] | undefined) ?? [],
+		),
+		includeAdmin: Boolean(unwrap(answers.includeAdmin)),
+		includeR2: Boolean(unwrap(answers.includeR2)),
+		includeTodos: Boolean(unwrap(answers.includeTodos)),
+		includeCron: Boolean(unwrap(answers.includeCron)),
+		includeQueues: Boolean(unwrap(answers.includeQueues)),
+		installDeps: Boolean(unwrap(answers.installDeps)),
+		initGit: Boolean(unwrap(answers.initGit)),
+		setupCloudflare: Boolean(unwrap(answers.setupCloudflare)),
 	};
 }

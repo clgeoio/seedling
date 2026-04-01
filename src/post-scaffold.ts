@@ -7,6 +7,10 @@ import pc from "picocolors";
 import { setupCloudflare } from "./cloudflare-setup.js";
 import type { ProjectOptions } from "./types.js";
 
+/**
+ * Runs post-scaffold steps: generates `.dev.vars` with a random auth secret,
+ * optionally initializes git, installs dependencies, and provisions Cloudflare resources.
+ */
 export async function postScaffold(options: ProjectOptions, targetDir: string): Promise<void> {
 	await generateDevVars(targetDir);
 

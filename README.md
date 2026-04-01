@@ -62,11 +62,30 @@ A production-ready full-stack app deployed to Cloudflare Workers, with:
 seedling create [project-name] [options]
 
 Options:
-  -y, --yes    Skip prompts and use defaults
-  -h, --help   Display help
+  -y, --yes                  Skip prompts and use defaults
+  --admin / --no-admin       Include/exclude admin panel (default: included)
+  --todos / --no-todos       Include/exclude example todos (default: included)
+  --r2                       Include R2 image storage (default: excluded)
+  --cron                     Include cron trigger handlers (default: excluded)
+  --queues                   Include queue handlers (default: excluded)
+  --social <providers...>    Social auth providers: github, google (default: both)
+  --no-git                   Skip git repository initialization
+  --no-install               Skip pnpm install
+  --no-cloudflare            Skip Cloudflare resource setup
+  -h, --help                 Display help
 ```
 
 When run without `--yes`, the CLI walks you through each option interactively.
+
+With `--yes`, defaults are applied and individual flags override them:
+
+```bash
+# Defaults with R2 and cron, but no admin panel
+npx github:clgeoio/seedling create my-app --yes --r2 --cron --no-admin
+
+# Only GitHub auth, skip install
+npx github:clgeoio/seedling create my-app --yes --social github --no-install
+```
 
 ## Generated Project Setup
 

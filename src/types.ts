@@ -1,3 +1,4 @@
+/** All resolved options for a project being scaffolded. */
 export interface ProjectOptions {
 	projectName: string;
 	displayName: string;
@@ -12,6 +13,7 @@ export interface ProjectOptions {
 	setupCloudflare: boolean;
 }
 
+/** Variables available to the template engine for conditionals and substitution. */
 export interface TemplateContext {
 	projectName: string;
 	displayName: string;
@@ -23,4 +25,22 @@ export interface TemplateContext {
 	hasGithub: boolean;
 	hasGoogle: boolean;
 	hasSocialAuth: boolean;
+}
+
+/**
+ * CLI flags parsed by Commander from `seedling create` arguments.
+ * When `yes` is true, defaults are used with individual flags as overrides.
+ * `undefined` means the flag was not explicitly set.
+ */
+export interface CliFlags {
+	yes?: boolean;
+	admin?: boolean;
+	todos?: boolean;
+	r2?: boolean;
+	cron?: boolean;
+	queues?: boolean;
+	social?: string[];
+	git?: boolean;
+	install?: boolean;
+	cloudflare?: boolean;
 }

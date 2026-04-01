@@ -18,7 +18,6 @@ const CONDITIONAL_PATHS: Record<string, string[]> = {
 const RENAME_MAP: Record<string, string> = {
 	_gitignore: ".gitignore",
 	"_dev.vars.example": ".dev.vars.example",
-	"_editorconfig": ".editorconfig",
 	"_oxfmtrc.json": ".oxfmtrc.json",
 	"_oxlintrc.json": ".oxlintrc.json",
 };
@@ -42,6 +41,14 @@ const TEXT_EXTENSIONS = new Set([
 	".mjs",
 ]);
 
+/**
+ * Scaffolds a new project by copying the default template, removing
+ * conditional paths based on selected features, renaming dot-prefixed
+ * files, and processing template variables/conditionals in all text files.
+ *
+ * @returns Absolute path to the created project directory
+ * @throws If the target directory already exists and is non-empty
+ */
 export async function scaffold(options: ProjectOptions): Promise<string> {
 	const targetDir = path.resolve(process.cwd(), options.projectName);
 
@@ -76,6 +83,7 @@ export async function scaffold(options: ProjectOptions): Promise<string> {
 	return targetDir;
 }
 
+/** Maps user-facing ProjectOptions to the TemplateContext used by the template engine. */
 export function buildContext(options: ProjectOptions): TemplateContext {
 	return {
 		projectName: options.projectName,
@@ -125,6 +133,10 @@ async function processFile(filePath: string, context: TemplateContext): Promise<
 	await fs.writeFile(filePath, content, "utf-8");
 }
 
+/**
+ * Processes `{{#if feature}}...{{/if}}` and `{{#unless feature}}...{{/unless}}`
+ * conditional blocks in template content. Supports nesting and any comment style.
+ */
 export function processConditionals(content: string, context: TemplateContext): string {
 	const lines = content.split("\n");
 	const result = processLines(lines, context);
@@ -190,12 +202,14 @@ function collectBlock(
 	return { content, endIndex: i - 1 };
 }
 
+/** Replaces `{{projectName}}` and `{{displayName}}` placeholders with actual values. */
 export function substituteVariables(content: string, context: TemplateContext): string {
 	return content
 		.replace(/\{\{projectName\}\}/g, context.projectName)
 		.replace(/\{\{displayName\}\}/g, context.displayName);
 }
 
+/** Removes trailing commas and re-formats JSON content with tab indentation. */
 export function cleanupJson(content: string): string {
 	content = content.replace(/,(\s*[}\]])/g, "$1");
 	content = content.replace(/\n{3,}/g, "\n\n");
