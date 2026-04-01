@@ -1,0 +1,37 @@
+{
+	"name": "seedling",
+	"version": "0.1.0",
+	"description": "Scaffold a full-stack Cloudflare Workers starter kit with React Router 7, Better Auth, Drizzle, and D1",
+	"type": "module",
+	"bin": {
+		"seedling": "./dist/index.js"
+	},
+	"files": [
+		"dist",
+		"templates"
+	],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"prepare": "tsup",
+		"lint": "oxlint .",
+		"format": "oxfmt .",
+		"format:check": "oxfmt --check .",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@clack/prompts": "^1.2.0",
+		"commander": "^14.0.3",
+		"fs-extra": "^11.3.4",
+		"picocolors": "^1.1.1"
+	},
+	"devDependencies": {
+		"@types/fs-extra": "^11.0.4",
+		"@types/node": "^25.5.0",
+		"tsup": "^8.5.1",
+		"typescript": "^6.0.2",
+		"vitest": "^4.1.2"
+	}
+}

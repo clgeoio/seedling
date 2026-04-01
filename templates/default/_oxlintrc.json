@@ -1,0 +1,18 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["typescript", "import", "react"],
+	"env": {
+		"browser": true
+	},
+	"rules": {
+		"no-unused-vars": "warn",
+		"@typescript-eslint/no-explicit-any": "error",
+		"react/self-closing-comp": "error"
+	},
+	"ignorePatterns": [
+		"node_modules",
+		".wrangler",
+		".react-router",
+		"dist"
+	]
+}

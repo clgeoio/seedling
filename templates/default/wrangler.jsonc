@@ -1,0 +1,74 @@
+{
+	"name": "{{projectName}}",
+	"main": "./workers/app.ts",
+	"compatibility_date": "2025-04-01",
+	"compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
+
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "{{projectName}}-db",
+			"database_id": "YOUR_D1_DATABASE_ID",
+			"migrations_dir": "drizzle/migrations"
+		}
+	],
+
+	"kv_namespaces": [
+		{
+			"binding": "APP_KV",
+			"id": "YOUR_KV_NAMESPACE_ID"
+		}
+	],
+
+// {{#if includeR2}}
+	"r2_buckets": [
+		{
+			"binding": "R2",
+			"bucket_name": "{{projectName}}-uploads"
+		}
+	],
+
+// {{/if}}
+// {{#if includeCron}}
+	"triggers": {
+		"crons": [
+			"0 */6 * * *",
+			"0 0 * * *"
+		]
+	},
+
+// {{/if}}
+// {{#if includeQueues}}
+	"queues": {
+		"producers": [
+			{
+				"binding": "EMAIL_QUEUE",
+				"queue": "{{projectName}}-email"
+			}
+		],
+		"consumers": [
+			{
+				"queue": "{{projectName}}-email",
+				"max_batch_size": 10,
+				"max_retries": 3
+			}
+		]
+	},
+
+// {{/if}}
+	"vars": {
+		"APP_URL": "http://localhost:5173",
+		"APP_ENV": "development",
+		"BETTER_AUTH_SECRET": "YOUR_BETTER_AUTH_SECRET",
+// {{#if hasGithub}}
+		"GITHUB_CLIENT_ID": "YOUR_GITHUB_CLIENT_ID",
+		"GITHUB_CLIENT_SECRET": "YOUR_GITHUB_CLIENT_SECRET",
+// {{/if}}
+// {{#if hasGoogle}}
+		"GOOGLE_CLIENT_ID": "YOUR_GOOGLE_CLIENT_ID",
+		"GOOGLE_CLIENT_SECRET": "YOUR_GOOGLE_CLIENT_SECRET",
+// {{/if}}
+		"RESEND_API_KEY": "YOUR_RESEND_API_KEY",
+		"BETTER_AUTH_ADMIN_USER_ID": ""
+	}
+}
