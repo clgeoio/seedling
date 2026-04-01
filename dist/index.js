@@ -24,7 +24,8 @@ async function gatherOptions(projectNameArg, skipPrompts) {
       includeCron: false,
       includeQueues: false,
       installDeps: true,
-      initGit: true
+      initGit: true,
+      setupCloudflare: false
     };
   }
   const answers = await p.group(
@@ -58,7 +59,11 @@ async function gatherOptions(projectNameArg, skipPrompts) {
       includeCron: () => p.confirm({ message: "Include cron trigger handlers?", initialValue: false }),
       includeQueues: () => p.confirm({ message: "Include queue handlers?", initialValue: false }),
       installDeps: () => p.confirm({ message: "Install dependencies with pnpm?", initialValue: true }),
-      initGit: () => p.confirm({ message: "Initialize git repository?", initialValue: true })
+      initGit: () => p.confirm({ message: "Initialize git repository?", initialValue: true }),
+      setupCloudflare: ({ results }) => results.installDeps ? p.confirm({
+        message: "Set up Cloudflare resources? (requires wrangler login)",
+        initialValue: true
+      }) : Promise.resolve(false)
     },
     {
       onCancel: () => {
@@ -77,7 +82,8 @@ async function gatherOptions(projectNameArg, skipPrompts) {
     includeCron: answers.includeCron,
     includeQueues: answers.includeQueues,
     installDeps: answers.installDeps,
-    initGit: answers.initGit
+    initGit: answers.initGit,
+    setupCloudflare: answers.setupCloudflare
   };
 }
 
@@ -131,8 +137,8 @@ async function scaffold(options) {
   await fs.copy(TEMPLATE_DIR, targetDir);
   for (const [feature, paths] of Object.entries(CONDITIONAL_PATHS)) {
     if (!options[feature]) {
-      for (const p3 of paths) {
-        await fs.remove(path.join(targetDir, p3));
+      for (const p4 of paths) {
+        await fs.remove(path.join(targetDir, p4));
       }
     }
   }
@@ -255,61 +261,289 @@ function cleanupJson(content) {
 
 // src/post-scaffold.ts
 import { randomBytes } from "crypto";
+import { execSync as execSync2 } from "child_process";
+import path3 from "path";
+import * as p3 from "@clack/prompts";
+import fs3 from "fs-extra";
+import pc3 from "picocolors";
+
+// src/cloudflare-setup.ts
 import { execSync } from "child_process";
 import path2 from "path";
 import * as p2 from "@clack/prompts";
 import fs2 from "fs-extra";
 import pc2 from "picocolors";
+var WRANGLER = "pnpm exec wrangler";
+async function setupCloudflare(options, targetDir) {
+  p2.log.step(pc2.bold("Setting up Cloudflare resources..."));
+  const authed = await ensureAuth(targetDir);
+  if (!authed) {
+    p2.log.warn("Skipping Cloudflare setup \u2014 you can configure wrangler.jsonc manually later.");
+    return false;
+  }
+  const ids = await createResources(options, targetDir);
+  await patchWranglerConfig(targetDir, ids);
+  await runLocalMigrations(targetDir);
+  await runLocalSeed(targetDir);
+  p2.log.success("Cloudflare resources configured and local database seeded");
+  return true;
+}
+async function ensureAuth(targetDir) {
+  const whoami = tryExec(`${WRANGLER} whoami`, targetDir);
+  if (whoami.success) {
+    const account = parseAccountName(whoami.stdout);
+    const displayAccount = account ?? "unknown account";
+    const useAccount = await p2.confirm({
+      message: `Logged in as ${pc2.cyan(displayAccount)}. Use this account?`,
+      initialValue: true
+    });
+    if (p2.isCancel(useAccount)) {
+      return false;
+    }
+    if (useAccount) {
+      return true;
+    }
+    return runLogin(targetDir);
+  }
+  p2.log.info("Not currently logged in to Cloudflare.");
+  const shouldLogin = await p2.confirm({
+    message: "Log in with wrangler now?",
+    initialValue: true
+  });
+  if (p2.isCancel(shouldLogin) || !shouldLogin) {
+    return false;
+  }
+  return runLogin(targetDir);
+}
+function runLogin(targetDir) {
+  try {
+    execSync(`${WRANGLER} login`, {
+      cwd: targetDir,
+      stdio: "inherit"
+    });
+  } catch {
+    p2.log.error("wrangler login failed.");
+    return false;
+  }
+  const verify = tryExec(`${WRANGLER} whoami`, targetDir);
+  if (!verify.success) {
+    p2.log.error("Authentication could not be verified after login.");
+    return false;
+  }
+  const account = parseAccountName(verify.stdout);
+  if (account) {
+    p2.log.success(`Authenticated as ${pc2.cyan(account)}`);
+  }
+  return true;
+}
+function parseAccountName(whoamiOutput) {
+  const match = whoamiOutput.match(/──\s+(.+?)\s+──/);
+  if (match?.[1]) return match[1].trim();
+  const accountMatch = whoamiOutput.match(/Account Name:\s*(.+)/i);
+  if (accountMatch?.[1]) return accountMatch[1].trim();
+  return null;
+}
+async function createResources(options, targetDir) {
+  const ids = {
+    d1DatabaseId: null,
+    kvNamespaceId: null
+  };
+  ids.d1DatabaseId = await createD1Database(options.projectName, targetDir);
+  ids.kvNamespaceId = await createKvNamespace(targetDir);
+  if (options.includeR2) {
+    await createR2Bucket(options.projectName, targetDir);
+  }
+  if (options.includeQueues) {
+    await createQueue(options.projectName, targetDir);
+  }
+  return ids;
+}
+async function createD1Database(projectName, targetDir) {
+  const dbName = `${projectName}-db`;
+  p2.log.step(`Creating D1 database "${dbName}"...`);
+  const result = tryExec(`${WRANGLER} d1 create ${dbName}`, targetDir);
+  if (result.success) {
+    const id = result.stdout.match(/database_id\s*=\s*"([^"]+)"/)?.[1] ?? null;
+    if (id) {
+      p2.log.success(`D1 database created: ${pc2.dim(id)}`);
+      return id;
+    }
+    p2.log.warn("D1 database created but could not parse database ID from output.");
+  } else {
+    p2.log.warn(`Failed to create D1 database: ${result.stderr.split("\n")[0]}`);
+  }
+  return promptForId(`Enter D1 database ID for "${dbName}" (or leave blank to skip)`);
+}
+async function createKvNamespace(targetDir) {
+  p2.log.step('Creating KV namespace "APP_KV"...');
+  const result = tryExec(`${WRANGLER} kv namespace create APP_KV`, targetDir);
+  if (result.success) {
+    const id = result.stdout.match(/id\s*=\s*"([^"]+)"/)?.[1] ?? null;
+    if (id) {
+      p2.log.success(`KV namespace created: ${pc2.dim(id)}`);
+      return id;
+    }
+    p2.log.warn("KV namespace created but could not parse namespace ID from output.");
+  } else {
+    p2.log.warn(`Failed to create KV namespace: ${result.stderr.split("\n")[0]}`);
+  }
+  return promptForId('Enter KV namespace ID for "APP_KV" (or leave blank to skip)');
+}
+async function createR2Bucket(projectName, targetDir) {
+  const bucketName = `${projectName}-uploads`;
+  p2.log.step(`Creating R2 bucket "${bucketName}"...`);
+  const result = tryExec(`${WRANGLER} r2 bucket create ${bucketName}`, targetDir);
+  if (result.success) {
+    p2.log.success(`R2 bucket "${bucketName}" created`);
+  } else {
+    p2.log.warn(`Failed to create R2 bucket: ${result.stderr.split("\n")[0]}`);
+  }
+}
+async function createQueue(projectName, targetDir) {
+  const queueName = `${projectName}-tasks`;
+  p2.log.step(`Creating Queue "${queueName}"...`);
+  const result = tryExec(`${WRANGLER} queues create ${queueName}`, targetDir);
+  if (result.success) {
+    p2.log.success(`Queue "${queueName}" created`);
+  } else {
+    p2.log.warn(`Failed to create Queue: ${result.stderr.split("\n")[0]}`);
+  }
+}
+async function promptForId(message) {
+  const value = await p2.text({
+    message,
+    placeholder: "paste ID here, or press Enter to skip",
+    defaultValue: ""
+  });
+  if (p2.isCancel(value) || !value) {
+    return null;
+  }
+  return value;
+}
+async function patchWranglerConfig(targetDir, ids) {
+  const configPath = path2.join(targetDir, "wrangler.jsonc");
+  if (!await fs2.pathExists(configPath)) return;
+  let content = await fs2.readFile(configPath, "utf-8");
+  if (ids.d1DatabaseId) {
+    content = content.replace("YOUR_D1_DATABASE_ID", ids.d1DatabaseId);
+  }
+  if (ids.kvNamespaceId) {
+    content = content.replace("YOUR_KV_NAMESPACE_ID", ids.kvNamespaceId);
+  }
+  await fs2.writeFile(configPath, content, "utf-8");
+  const patched = [];
+  if (ids.d1DatabaseId) patched.push("D1 database ID");
+  if (ids.kvNamespaceId) patched.push("KV namespace ID");
+  if (patched.length > 0) {
+    p2.log.success(`Updated wrangler.jsonc with ${patched.join(" and ")}`);
+  }
+}
+async function runLocalMigrations(targetDir) {
+  p2.log.step("Applying local D1 migrations...");
+  try {
+    execSync("pnpm db:migrate:local", {
+      cwd: targetDir,
+      stdio: "inherit"
+    });
+    p2.log.success("Local migrations applied");
+  } catch {
+    p2.log.warn("Failed to apply migrations. Run `pnpm db:migrate:local` manually.");
+  }
+}
+async function runLocalSeed(targetDir) {
+  p2.log.step("Seeding local database...");
+  try {
+    execSync("pnpm db:seed:local", {
+      cwd: targetDir,
+      stdio: "inherit"
+    });
+    p2.log.success("Local database seeded");
+  } catch {
+    p2.log.warn("Failed to seed database. Run `pnpm db:seed:local` manually.");
+  }
+}
+function tryExec(command, cwd) {
+  try {
+    const stdout = execSync(command, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    return { success: true, stdout, stderr: "" };
+  } catch (err) {
+    const execErr = err;
+    return {
+      success: false,
+      stdout: execErr.stdout ?? "",
+      stderr: execErr.stderr ?? ""
+    };
+  }
+}
+
+// src/post-scaffold.ts
 async function postScaffold(options, targetDir) {
   await generateDevVars(targetDir);
   if (options.initGit) {
-    p2.log.step("Initializing git repository...");
+    p3.log.step("Initializing git repository...");
     try {
-      execSync("git init && git checkout -b main", {
+      execSync2("git init && git checkout -b main", {
         cwd: targetDir,
         stdio: "ignore"
       });
-      p2.log.success("Git repository initialized");
+      p3.log.success("Git repository initialized");
     } catch {
-      p2.log.warn("Failed to initialize git repository");
+      p3.log.warn("Failed to initialize git repository");
     }
   }
   if (options.installDeps) {
-    p2.log.step("Installing dependencies with pnpm...");
+    p3.log.step("Installing dependencies with pnpm...");
     try {
-      execSync("pnpm install", {
+      execSync2("pnpm install", {
         cwd: targetDir,
         stdio: "inherit"
       });
-      p2.log.success("Dependencies installed");
+      p3.log.success("Dependencies installed");
     } catch {
-      p2.log.warn("Failed to install dependencies. Run `pnpm install` manually.");
+      p3.log.warn("Failed to install dependencies. Run `pnpm install` manually.");
     }
   }
-  p2.note(
-    [
-      `${pc2.bold("Next steps:")}`,
-      "",
-      `  ${pc2.cyan("1.")} cd ${options.projectName}`,
-      `  ${pc2.cyan("2.")} Add your secrets to .dev.vars`,
-      `  ${pc2.cyan("3.")} Update wrangler.jsonc with your Cloudflare resource IDs`,
-      `  ${pc2.cyan("4.")} pnpm db:migrate:local`,
-      `  ${pc2.cyan("5.")} pnpm db:seed:local`,
-      `  ${pc2.cyan("6.")} pnpm dev`
-    ].join("\n"),
+  let cloudflareReady = false;
+  if (options.setupCloudflare) {
+    cloudflareReady = await setupCloudflare(options, targetDir);
+  }
+  showNextSteps(options, cloudflareReady);
+  p3.outro(pc3.green("Happy building!"));
+}
+function showNextSteps(options, cloudflareReady) {
+  const steps = [];
+  let step = 1;
+  steps.push(`  ${pc3.cyan(`${step}.`)} cd ${options.projectName}`);
+  step++;
+  steps.push(`  ${pc3.cyan(`${step}.`)} Add your secrets to .dev.vars`);
+  step++;
+  if (!cloudflareReady) {
+    steps.push(`  ${pc3.cyan(`${step}.`)} Update wrangler.jsonc with your Cloudflare resource IDs`);
+    step++;
+    steps.push(`  ${pc3.cyan(`${step}.`)} pnpm db:migrate:local`);
+    step++;
+    steps.push(`  ${pc3.cyan(`${step}.`)} pnpm db:seed:local`);
+    step++;
+  }
+  steps.push(`  ${pc3.cyan(`${step}.`)} pnpm dev`);
+  p3.note(
+    [`${pc3.bold("Next steps:")}`, "", ...steps].join("\n"),
     "Your project is ready!"
   );
-  p2.outro(pc2.green("Happy building!"));
 }
 async function generateDevVars(targetDir) {
-  const examplePath = path2.join(targetDir, ".dev.vars.example");
-  const devVarsPath = path2.join(targetDir, ".dev.vars");
-  if (!await fs2.pathExists(examplePath)) return;
-  let content = await fs2.readFile(examplePath, "utf-8");
+  const examplePath = path3.join(targetDir, ".dev.vars.example");
+  const devVarsPath = path3.join(targetDir, ".dev.vars");
+  if (!await fs3.pathExists(examplePath)) return;
+  let content = await fs3.readFile(examplePath, "utf-8");
   const secret = randomBytes(32).toString("base64");
   content = content.replace(/^BETTER_AUTH_SECRET=$/m, `BETTER_AUTH_SECRET=${secret}`);
-  await fs2.writeFile(devVarsPath, content, "utf-8");
-  p2.log.success("Generated .dev.vars with BETTER_AUTH_SECRET");
+  await fs3.writeFile(devVarsPath, content, "utf-8");
+  p3.log.success("Generated .dev.vars with BETTER_AUTH_SECRET");
 }
 
 // src/index.ts

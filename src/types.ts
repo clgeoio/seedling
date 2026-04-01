@@ -9,6 +9,7 @@ export interface ProjectOptions {
 	includeQueues: boolean;
 	installDeps: boolean;
 	initGit: boolean;
+	setupCloudflare: boolean;
 }
 
 export interface TemplateContext {

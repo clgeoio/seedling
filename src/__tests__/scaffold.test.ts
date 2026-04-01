@@ -248,6 +248,7 @@ describe("buildContext", () => {
 			includeQueues: false,
 			installDeps: true,
 			initGit: true,
+			setupCloudflare: false,
 		};
 
 		const ctx = buildContext(options);
@@ -272,6 +273,7 @@ describe("buildContext", () => {
 			includeQueues: false,
 			installDeps: false,
 			initGit: false,
+			setupCloudflare: false,
 		};
 
 		const ctx = buildContext(options);

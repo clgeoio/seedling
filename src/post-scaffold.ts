@@ -4,6 +4,7 @@ import path from "node:path";
 import * as p from "@clack/prompts";
 import fs from "fs-extra";
 import pc from "picocolors";
+import { setupCloudflare } from "./cloudflare-setup.js";
 import type { ProjectOptions } from "./types.js";
 
 export async function postScaffold(options: ProjectOptions, targetDir: string): Promise<void> {
@@ -35,21 +36,43 @@ export async function postScaffold(options: ProjectOptions, targetDir: string): 
 		}
 	}
 
-	p.note(
-		[
-			`${pc.bold("Next steps:")}`,
-			"",
-			`  ${pc.cyan("1.")} cd ${options.projectName}`,
-			`  ${pc.cyan("2.")} Add your secrets to .dev.vars`,
-			`  ${pc.cyan("3.")} Update wrangler.jsonc with your Cloudflare resource IDs`,
-			`  ${pc.cyan("4.")} pnpm db:migrate:local`,
-			`  ${pc.cyan("5.")} pnpm db:seed:local`,
-			`  ${pc.cyan("6.")} pnpm dev`,
-		].join("\n"),
-		"Your project is ready!",
-	);
+	let cloudflareReady = false;
+	if (options.setupCloudflare) {
+		cloudflareReady = await setupCloudflare(options, targetDir);
+	}
+
+	showNextSteps(options, cloudflareReady);
 
 	p.outro(pc.green("Happy building!"));
+}
+
+function showNextSteps(options: ProjectOptions, cloudflareReady: boolean): void {
+	const steps: string[] = [];
+	let step = 1;
+
+	steps.push(`  ${pc.cyan(`${step}.`)} cd ${options.projectName}`);
+	step++;
+
+	steps.push(`  ${pc.cyan(`${step}.`)} Add your secrets to .dev.vars`);
+	step++;
+
+	if (!cloudflareReady) {
+		steps.push(`  ${pc.cyan(`${step}.`)} Update wrangler.jsonc with your Cloudflare resource IDs`);
+		step++;
+
+		steps.push(`  ${pc.cyan(`${step}.`)} pnpm db:migrate:local`);
+		step++;
+
+		steps.push(`  ${pc.cyan(`${step}.`)} pnpm db:seed:local`);
+		step++;
+	}
+
+	steps.push(`  ${pc.cyan(`${step}.`)} pnpm dev`);
+
+	p.note(
+		[`${pc.bold("Next steps:")}`, "", ...steps].join("\n"),
+		"Your project is ready!",
+	);
 }
 
 async function generateDevVars(targetDir: string): Promise<void> {

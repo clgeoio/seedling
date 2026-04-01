@@ -26,6 +26,7 @@ export async function gatherOptions(
 			includeQueues: false,
 			installDeps: true,
 			initGit: true,
+			setupCloudflare: false,
 		};
 	}
 
@@ -64,11 +65,18 @@ export async function gatherOptions(
 				p.confirm({ message: "Include cron trigger handlers?", initialValue: false }),
 			includeQueues: () =>
 				p.confirm({ message: "Include queue handlers?", initialValue: false }),
-			installDeps: () =>
-				p.confirm({ message: "Install dependencies with pnpm?", initialValue: true }),
-			initGit: () =>
-				p.confirm({ message: "Initialize git repository?", initialValue: true }),
-		},
+		installDeps: () =>
+			p.confirm({ message: "Install dependencies with pnpm?", initialValue: true }),
+		initGit: () =>
+			p.confirm({ message: "Initialize git repository?", initialValue: true }),
+		setupCloudflare: ({ results }) =>
+			results.installDeps
+				? p.confirm({
+						message: "Set up Cloudflare resources? (requires wrangler login)",
+						initialValue: true,
+					})
+				: Promise.resolve(false),
+	},
 		{
 			onCancel: () => {
 				p.cancel("Operation cancelled.");
@@ -88,5 +96,6 @@ export async function gatherOptions(
 		includeQueues: answers.includeQueues as boolean,
 		installDeps: answers.installDeps as boolean,
 		initGit: answers.initGit as boolean,
+		setupCloudflare: answers.setupCloudflare as boolean,
 	};
 }

@@ -70,10 +70,17 @@ When run without `--yes`, the CLI walks you through each option interactively.
 
 ## Generated Project Setup
 
-The CLI automatically generates a `.dev.vars` file from `.dev.vars.example` with a fresh `BETTER_AUTH_SECRET`. After scaffolding:
+The CLI automatically:
+
+- Generates a `.dev.vars` file with a fresh `BETTER_AUTH_SECRET`
+- Optionally logs in to Cloudflare, creates D1/KV/R2/Queue resources, patches `wrangler.jsonc` with real IDs, and runs local migrations + seed
+
+If you chose "Set up Cloudflare resources?" during scaffolding, your project is ready to run immediately:
 
 ```bash
 cd my-app
+# Add remaining secrets to .dev.vars (RESEND_API_KEY, OAuth credentials)
+pnpm dev
 ```
 
 ### Configure Secrets
@@ -101,16 +108,16 @@ wrangler secret put RESEND_API_KEY
 # etc.
 ```
 
-### Configure Wrangler
+### Manual Wrangler Setup (if you skipped Cloudflare setup)
 
-Edit `wrangler.jsonc` with your Cloudflare resource IDs:
+If you skipped the automated Cloudflare setup during scaffolding, create resources and update `wrangler.jsonc` manually:
 
 - **D1 database ID** -- create via `wrangler d1 create my-app-db`
 - **KV namespace ID** -- create via `wrangler kv namespace create APP_KV`
 - **R2 bucket name** (if enabled) -- create via `wrangler r2 bucket create my-app-uploads`
 - **Queue name** (if enabled) -- create via `wrangler queues create my-app-tasks`
 
-### Run Locally
+Then run the local database setup:
 
 ```bash
 pnpm db:migrate:local    # Apply migrations to local D1
@@ -184,13 +191,9 @@ my-app/
 
 ## Deployment
 
+If you used the automated Cloudflare setup, your resources already exist. Just set production secrets and deploy:
+
 ```bash
-# First-time setup
-wrangler d1 create my-app-db
-wrangler kv namespace create APP_KV
-
-# Update wrangler.jsonc with resource IDs
-
 # Set production secrets
 wrangler secret put BETTER_AUTH_SECRET
 wrangler secret put RESEND_API_KEY

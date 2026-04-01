@@ -17,6 +17,7 @@ function baseOptions(overrides: Partial<ProjectOptions> = {}): ProjectOptions {
 		includeQueues: false,
 		installDeps: false,
 		initGit: false,
+		setupCloudflare: false,
 		...overrides,
 	};
 }
