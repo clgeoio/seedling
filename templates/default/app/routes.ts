@@ -28,7 +28,7 @@ export default [
 		route("sign-in", "routes/auth/sign-in.tsx"),
 		route("sign-up", "routes/auth/sign-up.tsx"),
 		route("sign-out", "routes/auth/sign-out.tsx"),
-		route("forget-password", "routes/auth/forget-password.tsx"),
+		route("forgot-password", "routes/auth/forgot-password.tsx"),
 		route("reset-password", "routes/auth/reset-password.tsx"),
 	]),
 // {{#if includeR2}}
