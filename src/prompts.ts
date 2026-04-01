@@ -11,6 +11,13 @@ function parseSocialProviders(input: string[]): Array<"github" | "google"> {
 	return input.filter((provider): provider is "github" | "google" => valid.has(provider));
 }
 
+const PROJECT_NAME_RE = /^[a-z0-9-]+$/;
+
+function validateProjectName(name: string | undefined): string | undefined {
+	if (!name) return "Project name is required";
+	if (!PROJECT_NAME_RE.test(name)) return "Must be lowercase alphanumeric with hyphens";
+}
+
 function unwrap<T>(value: T | symbol): T {
 	if (typeof value === "symbol") {
 		throw new Error("Unexpected prompt cancellation");
@@ -33,6 +40,11 @@ export async function gatherOptions(
 
 	if (flags.yes) {
 		const projectName = projectNameArg ?? "my-app";
+		const nameError = validateProjectName(projectName);
+		if (nameError) {
+			p.log.error(nameError);
+			process.exit(1);
+		}
 		p.log.info(`Using defaults for project "${projectName}"`);
 		return {
 			projectName,
@@ -56,10 +68,7 @@ export async function gatherOptions(
 					message: "Project name",
 					placeholder: projectNameArg ?? "my-app",
 					defaultValue: projectNameArg ?? "my-app",
-					validate: (value) => {
-						if (!value) return "Project name is required";
-						if (!/^[a-z0-9-]+$/.test(value)) return "Must be lowercase alphanumeric with hyphens";
-					},
+					validate: validateProjectName,
 				}),
 			displayName: ({ results }) => {
 				const name = toTitleCase(String(results.projectName ?? "my-app"));

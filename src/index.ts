@@ -1,3 +1,4 @@
+import * as p from "@clack/prompts";
 import { Command } from "commander";
 import { gatherOptions } from "./prompts.js";
 import { scaffold } from "./scaffold.js";
@@ -26,13 +27,21 @@ program
 	.option("--cron", "Include cron trigger handlers")
 	.option("--queues", "Include queue handlers")
 	.option("--social <providers...>", "Social auth providers: github, google")
+	.option("--git", "Initialize git repository (default)")
 	.option("--no-git", "Skip git repository initialization")
+	.option("--install", "Install dependencies with pnpm (default)")
 	.option("--no-install", "Skip pnpm install")
+	.option("--cloudflare", "Set up Cloudflare resources")
 	.option("--no-cloudflare", "Skip Cloudflare resource setup")
 	.action(async (projectName: string | undefined, flags: CliFlags) => {
-		const options = await gatherOptions(projectName, flags);
-		const targetDir = await scaffold(options);
-		await postScaffold(options, targetDir);
+		try {
+			const options = await gatherOptions(projectName, flags);
+			const targetDir = await scaffold(options);
+			await postScaffold(options, targetDir);
+		} catch (err) {
+			p.log.error(err instanceof Error ? err.message : String(err));
+			process.exit(1);
+		}
 	});
 
 program.parse();

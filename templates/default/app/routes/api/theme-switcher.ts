@@ -1,4 +1,4 @@
-import { redirect } from "react-router";
+import { data } from "react-router";
 import type { Route } from "./+types/theme-switcher";
 import { setThemeCookie, type Theme } from "~/services/theme.server";
 
@@ -11,16 +11,15 @@ export function loader() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-	const referer = request.headers.get("Referer") ?? "/";
 	const formData = await request.formData();
 	const raw = formData.get("theme");
 
 	if (!isTheme(raw)) {
-		throw redirect(referer);
+		return data({ ok: false }, { status: 400 });
 	}
 
-	const headers = new Headers();
-	headers.append("Set-Cookie", setThemeCookie(raw));
-	throw redirect(referer, { headers });
+	return data({ ok: true }, {
+		headers: { "Set-Cookie": setThemeCookie(raw) },
+	});
 }
 

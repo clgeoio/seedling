@@ -60,6 +60,11 @@ function showNextSteps(options: ProjectOptions, cloudflareReady: boolean): void 
 	steps.push(`  ${pc.cyan(`${step}.`)} Add your secrets to .dev.vars`);
 	step++;
 
+	if (!options.installDeps) {
+		steps.push(`  ${pc.cyan(`${step}.`)} pnpm install`);
+		step++;
+	}
+
 	if (!cloudflareReady) {
 		steps.push(`  ${pc.cyan(`${step}.`)} Update wrangler.jsonc with your Cloudflare resource IDs`);
 		step++;

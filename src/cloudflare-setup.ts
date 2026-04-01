@@ -137,10 +137,10 @@ export function extractErrorMessage(output: string): string {
 
 	const errorIdx = lines.findIndex((l) => /\[ERROR]/.test(l));
 	if (errorIdx !== -1) {
-		const headline = lines[errorIdx].replace(/.*\[ERROR]\s*/, "").trim();
+		const headline = (lines[errorIdx] ?? "").replace(/.*\[ERROR]\s*/, "").trim();
 		const details: string[] = [];
 		for (let i = errorIdx + 1; i < lines.length; i++) {
-			const trimmed = lines[i].trim();
+			const trimmed = (lines[i] ?? "").trim();
 			if (!trimmed) continue;
 			if (/^(If you think this is a bug|https?:\/\/)/.test(trimmed)) break;
 			details.push(trimmed);

@@ -21,6 +21,7 @@ async function main(): Promise<void> {
 	const sqlite = new Database(dbPath);
 	const db = drizzle(sqlite, { schema });
 
+	await db.delete(schema.sessions);
 	await db.delete(schema.accounts);
 	await db.delete(schema.verifications);
 	// {{#if includeTodos}}

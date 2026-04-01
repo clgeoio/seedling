@@ -123,7 +123,7 @@ function isTextFile(filename: string): boolean {
 async function processFile(filePath: string, context: TemplateContext): Promise<void> {
 	let content = await fs.readFile(filePath, "utf-8");
 
-	content = processConditionals(content, context);
+	content = processConditionals(content, context, filePath);
 	content = substituteVariables(content, context);
 
 	if (filePath.endsWith(".json")) {
@@ -137,13 +137,17 @@ async function processFile(filePath: string, context: TemplateContext): Promise<
  * Processes `{{#if feature}}...{{/if}}` and `{{#unless feature}}...{{/unless}}`
  * conditional blocks in template content. Supports nesting and any comment style.
  */
-export function processConditionals(content: string, context: TemplateContext): string {
+export function processConditionals(
+	content: string,
+	context: TemplateContext,
+	filePath?: string,
+): string {
 	const lines = content.split("\n");
-	const result = processLines(lines, context);
+	const result = processLines(lines, context, filePath);
 	return result.join("\n");
 }
 
-function processLines(lines: string[], context: TemplateContext): string[] {
+function processLines(lines: string[], context: TemplateContext, filePath?: string): string[] {
 	const result: string[] = [];
 	let i = 0;
 
@@ -153,17 +157,17 @@ function processLines(lines: string[], context: TemplateContext): string[] {
 
 		if (ifMatch) {
 			const feature = ifMatch[1] as string;
-			const block = collectBlock(lines, i);
+			const block = collectBlock(lines, i, "if", filePath);
 			i = block.endIndex + 1;
 			if (context[feature as keyof TemplateContext]) {
-				result.push(...processLines(block.content, context));
+				result.push(...processLines(block.content, context, filePath));
 			}
 		} else if (unlessMatch) {
 			const feature = unlessMatch[1] as string;
-			const block = collectBlock(lines, i);
+			const block = collectBlock(lines, i, "unless", filePath);
 			i = block.endIndex + 1;
 			if (!context[feature as keyof TemplateContext]) {
-				result.push(...processLines(block.content, context));
+				result.push(...processLines(block.content, context, filePath));
 			}
 		} else {
 			result.push(lines[i] as string);
@@ -177,18 +181,28 @@ function processLines(lines: string[], context: TemplateContext): string[] {
 function collectBlock(
 	lines: string[],
 	startIndex: number,
+	expectedTag: "if" | "unless",
+	filePath?: string,
 ): { content: string[]; endIndex: number } {
 	const content: string[] = [];
 	let depth = 1;
 	let i = startIndex + 1;
+	const location = filePath ? ` in ${filePath}` : "";
 
 	while (i < lines.length && depth > 0) {
 		if (lines[i]?.match(/\{\{#(?:if|unless)\s+\w+\}\}/)) {
 			depth++;
 		}
-		if (lines[i]?.match(/\{\{\/(?:if|unless)\}\}/)) {
+		const closeMatch = lines[i]?.match(/\{\{\/(if|unless)\}\}/);
+		if (closeMatch) {
 			depth--;
 			if (depth === 0) {
+				const closingTag = closeMatch[1] as string;
+				if (closingTag !== expectedTag) {
+					throw new Error(
+						`Mismatched template tag: opened with {{#${expectedTag}}} on line ${startIndex + 1} but closed with {{/${closingTag}}} on line ${i + 1}${location}`,
+					);
+				}
 				return { content, endIndex: i };
 			}
 		}
@@ -196,7 +210,9 @@ function collectBlock(
 		i++;
 	}
 
-	return { content, endIndex: i - 1 };
+	throw new Error(
+		`Unclosed {{#${expectedTag}}} block starting on line ${startIndex + 1}${location}`,
+	);
 }
 
 /** Replaces `{{projectName}}` and `{{displayName}}` placeholders with actual values. */

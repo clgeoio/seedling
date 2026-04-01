@@ -241,12 +241,19 @@ describe("scaffold template processing", () => {
 					".ts",
 					".tsx",
 					".js",
+					".jsx",
 					".json",
 					".jsonc",
 					".css",
+					".html",
+					".md",
 					".yml",
+					".yaml",
+					".toml",
 					".sql",
+					".txt",
 					".cjs",
+					".mjs",
 				]);
 				if (!textExts.has(ext) && !file.startsWith(".")) continue;
 

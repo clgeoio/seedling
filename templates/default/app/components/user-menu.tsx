@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Form, Link } from "react-router";
 import { useSession } from "~/services/auth/client";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
@@ -52,7 +52,9 @@ export function UserMenu() {
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem asChild>
-					<Link to="/auth/sign-out">Sign out</Link>
+					<Form method="post" action="/auth/sign-out">
+						<button type="submit" className="w-full text-left">Sign out</button>
+					</Form>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

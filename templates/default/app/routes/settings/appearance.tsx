@@ -42,7 +42,7 @@ export default function SettingsAppearance() {
 		setActiveTheme(theme);
 		fetcher.submit(
 			{ theme },
-			{ method: "POST", action: "/api/theme-switcher", encType: "application/json" },
+			{ method: "POST", action: "/api/theme-switcher" },
 		);
 	}
 

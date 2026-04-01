@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 // src/index.ts
+import * as p4 from "@clack/prompts";
 import { Command } from "commander";
 
 // src/prompts.ts
@@ -13,6 +14,11 @@ function parseSocialProviders(input) {
   const valid = /* @__PURE__ */ new Set(["github", "google"]);
   return input.filter((provider) => valid.has(provider));
 }
+var PROJECT_NAME_RE = /^[a-z0-9-]+$/;
+function validateProjectName(name) {
+  if (!name) return "Project name is required";
+  if (!PROJECT_NAME_RE.test(name)) return "Must be lowercase alphanumeric with hyphens";
+}
 function unwrap(value) {
   if (typeof value === "symbol") {
     throw new Error("Unexpected prompt cancellation");
@@ -23,6 +29,11 @@ async function gatherOptions(projectNameArg, flags = {}) {
   p.intro(pc.bgCyan(pc.black(" seedling ")));
   if (flags.yes) {
     const projectName = projectNameArg ?? "my-app";
+    const nameError = validateProjectName(projectName);
+    if (nameError) {
+      p.log.error(nameError);
+      process.exit(1);
+    }
     p.log.info(`Using defaults for project "${projectName}"`);
     return {
       projectName,
@@ -44,11 +55,7 @@ async function gatherOptions(projectNameArg, flags = {}) {
         message: "Project name",
         placeholder: projectNameArg ?? "my-app",
         defaultValue: projectNameArg ?? "my-app",
-        validate: (value) => {
-          if (!value) return "Project name is required";
-          if (!/^[a-z0-9-]+$/.test(value))
-            return "Must be lowercase alphanumeric with hyphens";
-        }
+        validate: validateProjectName
       }),
       displayName: ({ results }) => {
         const name = toTitleCase(String(results.projectName ?? "my-app"));
@@ -151,8 +158,8 @@ async function scaffold(options) {
   await fs.copy(TEMPLATE_DIR, targetDir);
   for (const [feature, paths] of Object.entries(CONDITIONAL_PATHS)) {
     if (!options[feature]) {
-      for (const p4 of paths) {
-        await fs.remove(path.join(targetDir, p4));
+      for (const p5 of paths) {
+        await fs.remove(path.join(targetDir, p5));
       }
     }
   }
@@ -201,19 +208,19 @@ function isTextFile(filename) {
 }
 async function processFile(filePath, context) {
   let content = await fs.readFile(filePath, "utf-8");
-  content = processConditionals(content, context);
+  content = processConditionals(content, context, filePath);
   content = substituteVariables(content, context);
   if (filePath.endsWith(".json")) {
     content = cleanupJson(content);
   }
   await fs.writeFile(filePath, content, "utf-8");
 }
-function processConditionals(content, context) {
+function processConditionals(content, context, filePath) {
   const lines = content.split("\n");
-  const result = processLines(lines, context);
+  const result = processLines(lines, context, filePath);
   return result.join("\n");
 }
-function processLines(lines, context) {
+function processLines(lines, context, filePath) {
   const result = [];
   let i = 0;
   while (i < lines.length) {
@@ -221,17 +228,17 @@ function processLines(lines, context) {
     const unlessMatch = lines[i]?.match(/\{\{#unless\s+(\w+)\}\}/);
     if (ifMatch) {
       const feature = ifMatch[1];
-      const block = collectBlock(lines, i);
+      const block = collectBlock(lines, i, "if", filePath);
       i = block.endIndex + 1;
       if (context[feature]) {
-        result.push(...processLines(block.content, context));
+        result.push(...processLines(block.content, context, filePath));
       }
     } else if (unlessMatch) {
       const feature = unlessMatch[1];
-      const block = collectBlock(lines, i);
+      const block = collectBlock(lines, i, "unless", filePath);
       i = block.endIndex + 1;
       if (!context[feature]) {
-        result.push(...processLines(block.content, context));
+        result.push(...processLines(block.content, context, filePath));
       }
     } else {
       result.push(lines[i]);
@@ -240,24 +247,34 @@ function processLines(lines, context) {
   }
   return result;
 }
-function collectBlock(lines, startIndex) {
+function collectBlock(lines, startIndex, expectedTag, filePath) {
   const content = [];
   let depth = 1;
   let i = startIndex + 1;
+  const location = filePath ? ` in ${filePath}` : "";
   while (i < lines.length && depth > 0) {
     if (lines[i]?.match(/\{\{#(?:if|unless)\s+\w+\}\}/)) {
       depth++;
     }
-    if (lines[i]?.match(/\{\{\/(?:if|unless)\}\}/)) {
+    const closeMatch = lines[i]?.match(/\{\{\/(if|unless)\}\}/);
+    if (closeMatch) {
       depth--;
       if (depth === 0) {
+        const closingTag = closeMatch[1];
+        if (closingTag !== expectedTag) {
+          throw new Error(
+            `Mismatched template tag: opened with {{#${expectedTag}}} on line ${startIndex + 1} but closed with {{/${closingTag}}} on line ${i + 1}${location}`
+          );
+        }
         return { content, endIndex: i };
       }
     }
     content.push(lines[i]);
     i++;
   }
-  return { content, endIndex: i - 1 };
+  throw new Error(
+    `Unclosed {{#${expectedTag}}} block starting on line ${startIndex + 1}${location}`
+  );
 }
 function substituteVariables(content, context) {
   return content.replace(/\{\{projectName\}\}/g, context.projectName).replace(/\{\{displayName\}\}/g, context.displayName);
@@ -381,10 +398,10 @@ function extractErrorMessage(output) {
   const lines = clean.split("\n");
   const errorIdx = lines.findIndex((l) => /\[ERROR]/.test(l));
   if (errorIdx !== -1) {
-    const headline = lines[errorIdx].replace(/.*\[ERROR]\s*/, "").trim();
+    const headline = (lines[errorIdx] ?? "").replace(/.*\[ERROR]\s*/, "").trim();
     const details = [];
     for (let i = errorIdx + 1; i < lines.length; i++) {
-      const trimmed = lines[i].trim();
+      const trimmed = (lines[i] ?? "").trim();
       if (!trimmed) continue;
       if (/^(If you think this is a bug|https?:\/\/)/.test(trimmed)) break;
       details.push(trimmed);
@@ -585,6 +602,10 @@ function showNextSteps(options, cloudflareReady) {
   step++;
   steps.push(`  ${pc3.cyan(`${step}.`)} Add your secrets to .dev.vars`);
   step++;
+  if (!options.installDeps) {
+    steps.push(`  ${pc3.cyan(`${step}.`)} pnpm install`);
+    step++;
+  }
   if (!cloudflareReady) {
     steps.push(`  ${pc3.cyan(`${step}.`)} Update wrangler.jsonc with your Cloudflare resource IDs`);
     step++;
@@ -594,10 +615,7 @@ function showNextSteps(options, cloudflareReady) {
     step++;
   }
   steps.push(`  ${pc3.cyan(`${step}.`)} pnpm dev`);
-  p3.note(
-    [`${pc3.bold("Next steps:")}`, "", ...steps].join("\n"),
-    "Your project is ready!"
-  );
+  p3.note([`${pc3.bold("Next steps:")}`, "", ...steps].join("\n"), "Your project is ready!");
 }
 async function generateDevVars(targetDir) {
   const examplePath = path3.join(targetDir, ".dev.vars.example");
@@ -613,9 +631,14 @@ async function generateDevVars(targetDir) {
 // src/index.ts
 var program = new Command();
 program.name("seedling").description("Scaffold a full-stack Cloudflare Workers starter kit").version("0.1.0");
-program.command("create").description("Create a new project").argument("[project-name]", "Name of the project directory").option("-y, --yes", "Skip prompts and use defaults").option("--admin", "Include admin panel (default with --yes)").option("--no-admin", "Exclude admin panel").option("--todos", "Include example todos (default with --yes)").option("--no-todos", "Exclude example todos").option("--r2", "Include R2 image storage").option("--cron", "Include cron trigger handlers").option("--queues", "Include queue handlers").option("--social <providers...>", "Social auth providers: github, google").option("--no-git", "Skip git repository initialization").option("--no-install", "Skip pnpm install").option("--no-cloudflare", "Skip Cloudflare resource setup").action(async (projectName, flags) => {
-  const options = await gatherOptions(projectName, flags);
-  const targetDir = await scaffold(options);
-  await postScaffold(options, targetDir);
+program.command("create").description("Create a new project").argument("[project-name]", "Name of the project directory").option("-y, --yes", "Skip prompts and use defaults").option("--admin", "Include admin panel (default with --yes)").option("--no-admin", "Exclude admin panel").option("--todos", "Include example todos (default with --yes)").option("--no-todos", "Exclude example todos").option("--r2", "Include R2 image storage").option("--cron", "Include cron trigger handlers").option("--queues", "Include queue handlers").option("--social <providers...>", "Social auth providers: github, google").option("--git", "Initialize git repository (default)").option("--no-git", "Skip git repository initialization").option("--install", "Install dependencies with pnpm (default)").option("--no-install", "Skip pnpm install").option("--cloudflare", "Set up Cloudflare resources").option("--no-cloudflare", "Skip Cloudflare resource setup").action(async (projectName, flags) => {
+  try {
+    const options = await gatherOptions(projectName, flags);
+    const targetDir = await scaffold(options);
+    await postScaffold(options, targetDir);
+  } catch (err) {
+    p4.log.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
 });
 program.parse();

@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 // {{#if includeAdmin}}
 import { admin } from "better-auth/plugins";
+import { ac, adminRole, editorRole } from "~/services/auth/permissions";
 // {{/if}}
 import { getDb } from "~/services/db.server";
 import { sendEmail } from "~/services/email.server";
@@ -63,6 +64,8 @@ export function createAuth(env: Env) {
 		plugins: [
 // {{#if includeAdmin}}
 			admin({
+				ac,
+				roles: { admin: adminRole, editor: editorRole },
 				adminUserIds: env.BETTER_AUTH_ADMIN_USER_ID
 					? [env.BETTER_AUTH_ADMIN_USER_ID]
 					: [],
@@ -88,6 +91,7 @@ export function createAuth(env: Env) {
 			enabled: true,
 			window: 60,
 			max: 10,
+			storage: "database",
 		},
 
 // {{#if includeR2}}

@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Chrome, Github } from "lucide-react";
+// {{#if hasGithub}}
+import { Github } from "lucide-react";
+// {{/if}}
+// {{#if hasGoogle}}
+import { Chrome } from "lucide-react";
+// {{/if}}
 import { Button } from "~/components/ui/button";
 import {
 	Card,
