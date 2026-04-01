@@ -378,10 +378,25 @@ function parseKvNamespaceId(output) {
 }
 function extractErrorMessage(output) {
   const clean = stripAnsi(output);
-  const errorMatch = clean.match(/\[ERROR]\s*(.+)/);
-  if (errorMatch?.[1]) return errorMatch[1].trim();
-  const lines = clean.split("\n").filter((l) => l.trim());
-  return lines[0] ?? "unknown error";
+  const lines = clean.split("\n");
+  const errorIdx = lines.findIndex((l) => /\[ERROR]/.test(l));
+  if (errorIdx !== -1) {
+    const headline = lines[errorIdx].replace(/.*\[ERROR]\s*/, "").trim();
+    const details = [];
+    for (let i = errorIdx + 1; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (!trimmed) continue;
+      if (/^(If you think this is a bug|https?:\/\/)/.test(trimmed)) break;
+      details.push(trimmed);
+    }
+    if (details.length > 0) {
+      return `${headline}
+  ${details.join("\n  ")}`;
+    }
+    return headline;
+  }
+  const nonEmpty = lines.filter((l) => l.trim());
+  return nonEmpty[0]?.trim() ?? "unknown error";
 }
 function stripAnsi(str) {
   return str.replace(/\x1b\[[0-9;]*m/g, "");

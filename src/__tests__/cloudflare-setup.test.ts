@@ -173,6 +173,31 @@ describe("extractErrorMessage", () => {
 		expect(extractErrorMessage(output)).toBe("Database already exists");
 	});
 
+	it("includes detail lines after ERROR headline", () => {
+		const output = `✘ [ERROR] A request to the Cloudflare API (/accounts/abc123/r2/buckets) failed.
+
+  A bucket with this name already exists. [code: 10004]
+
+  If you think this is a bug, please open an issue at:
+  https://github.com/cloudflare/workers-sdk/issues/new/choose`;
+		expect(extractErrorMessage(output)).toBe(
+			"A request to the Cloudflare API (/accounts/abc123/r2/buckets) failed.\n  A bucket with this name already exists. [code: 10004]",
+		);
+	});
+
+	it("includes multiple detail lines after ERROR headline", () => {
+		const output = `✘ [ERROR] A request to the Cloudflare API (/accounts/abc123/queues) failed.
+
+  workers.api.error.not_entitled [code: 10023]
+  You need to enable Queues for your account.
+
+  If you think this is a bug, please open an issue at:
+  https://github.com/cloudflare/workers-sdk/issues/new/choose`;
+		expect(extractErrorMessage(output)).toBe(
+			"A request to the Cloudflare API (/accounts/abc123/queues) failed.\n  workers.api.error.not_entitled [code: 10023]\n  You need to enable Queues for your account.",
+		);
+	});
+
 	it("falls back to first non-empty line", () => {
 		const output = "\n\nSomething went wrong\nMore details here";
 		expect(extractErrorMessage(output)).toBe("Something went wrong");
