@@ -1,4 +1,6 @@
-const TOAST_COOKIE_NAME = "{{projectName}}_toast";
+import { COOKIE_PREFIX } from "~/lib/config";
+
+const TOAST_COOKIE_NAME = `${COOKIE_PREFIX}_toast`;
 
 export interface ToastMessage {
 	type: "success" | "error" | "info" | "warning";

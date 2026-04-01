@@ -11,7 +11,15 @@ export interface AuthContext {
 	} | null;
 }
 
-const protectedPaths = ["/settings", "/todos", "/admin"];
+const protectedPaths = [
+	"/settings",
+// {{#if includeTodos}}
+	"/todos",
+// {{/if}}
+// {{#if includeAdmin}}
+	"/admin",
+// {{/if}}
+];
 const guestOnlyPaths = ["/auth/sign-in", "/auth/sign-up"];
 
 export const authMiddleware: MiddlewareFunction = async ({ request, context }, next) => {
@@ -28,9 +36,9 @@ export const authMiddleware: MiddlewareFunction = async ({ request, context }, n
 
 	const user = sessionUser && !isBanned
 		? {
-				id: session.user.id,
-				email: session.user.email,
-				image: session.user.image ?? null,
+				id: String(sessionUser.id),
+				email: String(sessionUser.email),
+				image: sessionUser.image ? String(sessionUser.image) : null,
 				role: (sessionUser.role as string) ?? "user",
 			}
 		: null;

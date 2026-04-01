@@ -79,7 +79,7 @@ export default function AuthSignIn() {
 							<div className="flex items-center justify-between">
 								<Label htmlFor="password">Password</Label>
 								<Link
-									to="/auth/forget-password"
+									to="/auth/forgot-password"
 									className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
 								>
 									Forgot password?

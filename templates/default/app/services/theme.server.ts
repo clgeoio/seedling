@@ -1,4 +1,6 @@
-const THEME_COOKIE_NAME = "{{projectName}}_theme";
+import { COOKIE_PREFIX } from "~/lib/config";
+
+const THEME_COOKIE_NAME = `${COOKIE_PREFIX}_theme`;
 
 export type Theme = "light" | "dark" | "system";
 

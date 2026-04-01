@@ -66,7 +66,7 @@ export default function AuthResetPassword() {
 					</CardHeader>
 					<CardFooter className="flex flex-col gap-2">
 						<Button asChild className="w-full">
-							<Link to="/auth/forget-password">Request new link</Link>
+							<Link to="/auth/forgot-password">Request new link</Link>
 						</Button>
 						<Button variant="outline" asChild className="w-full">
 							<Link to="/auth/sign-in">Back to sign in</Link>
