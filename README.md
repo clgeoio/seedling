@@ -70,20 +70,18 @@ When run without `--yes`, the CLI walks you through each option interactively.
 
 ## Generated Project Setup
 
-After scaffolding, follow these steps:
+The CLI automatically generates a `.env` file from `.env.example` with a fresh `BETTER_AUTH_SECRET`. After scaffolding:
 
 ```bash
 cd my-app
-cp .env.example .env
-cp wrangler.jsonc.example wrangler.jsonc
 ```
 
 ### Configure Secrets
 
-Edit `.env` with your values:
+Edit `.env` with your remaining values:
 
 ```env
-BETTER_AUTH_SECRET=         # Run: pnpm auth:secret
+BETTER_AUTH_SECRET=...     # Already generated for you
 RESEND_API_KEY=             # From https://resend.com
 BETTER_AUTH_ADMIN_USER_ID=  # Your user ID after first sign-up
 
@@ -208,11 +206,12 @@ pnpm test
 
 ### Testing
 
-Tests run with Vitest across three layers:
+Tests run with Vitest across four layers:
 
 - **Unit tests** -- template engine logic (variable substitution, conditionals, JSON cleanup)
 - **Snapshot tests** -- verify generated file trees for different feature combinations
 - **Build verification** -- scaffold a project, install deps, run typegen + tsc + react-router build
+- **Smoke tests** -- scaffold, start dev server, verify HTTP responses for key routes
 
 ```bash
 pnpm test          # Run all tests

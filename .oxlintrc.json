@@ -4,5 +4,6 @@
 	"rules": {
 		"no-unused-vars": "warn",
 		"@typescript-eslint/no-explicit-any": "error"
-	}
+	},
+	"ignorePatterns": ["dist", "templates"]
 }

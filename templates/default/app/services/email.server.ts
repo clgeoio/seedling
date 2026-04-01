@@ -9,6 +9,7 @@ interface EmailOptions {
 export async function sendEmail(env: Env, options: EmailOptions): Promise<void> {
 // {{#if includeQueues}}
 	await env.EMAIL_QUEUE.send({
+		type: "email",
 		to: options.to,
 		subject: options.subject,
 		html: options.html,

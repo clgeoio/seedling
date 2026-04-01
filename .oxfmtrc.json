@@ -3,5 +3,6 @@
 	"printWidth": 100,
 	"useTabs": true,
 	"semi": true,
-	"trailingComma": "all"
+	"trailingComma": "all",
+	"ignorePatterns": ["dist/**", "templates/**"]
 }

@@ -254,10 +254,14 @@ function cleanupJson(content) {
 }
 
 // src/post-scaffold.ts
+import { randomBytes } from "crypto";
 import { execSync } from "child_process";
+import path2 from "path";
 import * as p2 from "@clack/prompts";
+import fs2 from "fs-extra";
 import pc2 from "picocolors";
 async function postScaffold(options, targetDir) {
+  await generateEnvFile(targetDir);
   if (options.initGit) {
     p2.log.step("Initializing git repository...");
     try {
@@ -287,16 +291,24 @@ async function postScaffold(options, targetDir) {
       `${pc2.bold("Next steps:")}`,
       "",
       `  ${pc2.cyan("1.")} cd ${options.projectName}`,
-      `  ${pc2.cyan("2.")} cp .env.example .env`,
-      `  ${pc2.cyan("3.")} cp wrangler.jsonc.example wrangler.jsonc`,
-      `  ${pc2.cyan("4.")} Update .env with your secrets`,
-      `  ${pc2.cyan("5.")} pnpm db:migrate:local`,
-      `  ${pc2.cyan("6.")} pnpm db:seed:local`,
-      `  ${pc2.cyan("7.")} pnpm dev`
+      `  ${pc2.cyan("2.")} Update .env and wrangler.jsonc with your secrets`,
+      `  ${pc2.cyan("3.")} pnpm db:migrate:local`,
+      `  ${pc2.cyan("4.")} pnpm db:seed:local`,
+      `  ${pc2.cyan("5.")} pnpm dev`
     ].join("\n"),
     "Your project is ready!"
   );
   p2.outro(pc2.green("Happy building!"));
+}
+async function generateEnvFile(targetDir) {
+  const envExamplePath = path2.join(targetDir, ".env.example");
+  const envPath = path2.join(targetDir, ".env");
+  if (!await fs2.pathExists(envExamplePath)) return;
+  let content = await fs2.readFile(envExamplePath, "utf-8");
+  const secret = randomBytes(32).toString("base64");
+  content = content.replace(/^BETTER_AUTH_SECRET=$/m, `BETTER_AUTH_SECRET=${secret}`);
+  await fs2.writeFile(envPath, content, "utf-8");
+  p2.log.success("Generated .env with BETTER_AUTH_SECRET");
 }
 
 // src/index.ts

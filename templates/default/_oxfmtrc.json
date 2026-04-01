@@ -9,5 +9,6 @@
 	},
 	"sortTailwindcss": {
 		"enabled": true
-	}
+	},
+	"ignorePatterns": ["node_modules/**", "build/**", "dist/**", ".wrangler/**", ".react-router/**"]
 }
