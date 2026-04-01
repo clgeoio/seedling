@@ -91,7 +91,7 @@ export function createAuth(env: Env) {
 			enabled: true,
 			window: 60,
 			max: 10,
-			storage: "database",
+			storage: "secondary-storage",
 		},
 
 // {{#if includeR2}}
